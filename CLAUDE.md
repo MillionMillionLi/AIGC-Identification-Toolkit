@@ -4,36 +4,61 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a unified watermarking tool that supports text, image, audio, and video watermarking. The project integrates multiple watermarking algorithms including:
+This is an AIGC (AI-Generated Content) identification system that provides comprehensive marking and tracing solutions for AI-generated content. The system integrates multiple identification technologies including:
 
-- **Text Watermarking**: CredID algorithm for Large Language Model (LLM) identification
-- **Image Watermarking**: VideoSeal backend by default, PRC-Watermark optional
-- **Audio Watermarking**: AudioSeal algorithm for robust audio watermarking with optional Bark text-to-speech integration
-- **Video Watermarking**: HunyuanVideo generation + VideoSeal watermarking
+- **Hidden Watermarking Technologies**: Invisible technical identification for copyright protection and content tracing
+  - **Text Hidden Watermarking**: CredID algorithm for Large Language Model (LLM) identification
+  - **Image Hidden Watermarking**: VideoSeal backend by default, PRC-Watermark optional
+  - **Audio Hidden Watermarking**: AudioSeal algorithm for robust audio watermarking with optional Bark text-to-speech integration
+  - **Video Hidden Watermarking**: HunyuanVideo generation + VideoSeal watermarking
+
+- **Visible Marking Technologies**: Visible compliance markers for regulatory requirements and user awareness
+  - **Text Visible Marking**: Insert standard compliance text markers
+  - **Image Visible Marking**: Overlay visible text marks with customizable position and style
+  - **Audio Visible Marking**: Voice marker insertion (based on Bark TTS)
+  - **Video Visible Marking**: Visible text overlay on video frames (based on FFmpeg)
+
+- **Implicit Metadata Marking**: (Planned) Structured metadata embedding for generation model, timestamp, parameters, etc.
 
 ## Architecture
 
 The codebase follows a modular architecture with the following components:
 
 ### Core Modules
-- `src/unified/unified_engine.py`: Core engine for multimodal watermarking (text/image/audio/video)
-- `src/unified/watermark_tool.py`: High-level facade over the engine; preferred entry-point for users
-- `src/text_watermark/`: CredID-based text watermarking implementation
-- `src/image_watermark/`: Image watermarking (VideoSeal backend by default; PRC available)
-- `src/audio_watermark/`: Audio watermarking (AudioSeal; optional Bark TTS)
-- `src/video_watermark/`: Video generation (HunyuanVideo) + VideoSeal watermarking
-- `src/utils/`: Shared utilities for configuration and model management
+- `src/unified/unified_engine.py`: Core AIGC content identification engine for multimodal marking (text/image/audio/video)
+- `src/unified/watermark_tool.py`: High-level facade over the engine; preferred entry-point for AIGC identification
+- `src/text_watermark/`: CredID-based text hidden watermarking implementation
+- `src/image_watermark/`: Image identification (VideoSeal backend by default; PRC available)
+- `src/audio_watermark/`: Audio identification (AudioSeal; optional Bark TTS)
+- `src/video_watermark/`: Video generation (HunyuanVideo) + VideoSeal identification
+- `src/utils/`: Shared utilities for configuration, model management, and visible marking
 
-### Unified Engine (Updated)
+### Unified Content Identification Engine (Enhanced with Dual-Operation Support)
 Location: `src/unified/unified_engine.py`
 
 Key features:
-- Unified API: `embed(prompt, message, modality, **kwargs)` and `extract(content, modality, **kwargs)` for `text|image|audio|video`
-- **Dual-mode support**: AI generation mode (prompt-based) and upload file mode (file-based watermarking)
-- **Original file preservation**: returns both original and watermarked content for comparison display
-- Defaults: `text=credid`, `image=videoseal`, `audio=audioseal`, `video=hunyuan+videoseal`
+- **Unified AIGC Identification API**: `embed(content, message, modality, operation='watermark|visible_mark', **kwargs)` and `extract(content, modality, operation='watermark|visible_mark', **kwargs)` for comprehensive content marking across `text|image|audio|video`
+- **Dual-mode support**: AI generation mode (prompt-based content creation) and upload file mode (existing content processing)
+- **Dual-operation support**: Hidden watermarking (`operation='watermark'`) for technical protection and visible marking (`operation='visible_mark'`) for compliance and transparency
+- **Smart routing**: Automatically selects appropriate identification technology based on modality and operation type
+- **Original content preservation**: returns both original and identified content for before/after comparison display
+- **Backward compatibility**: `operation` parameter defaults to `'watermark'` to maintain existing API compatibility
+- Technology defaults: `text=credid`, `image=videoseal`, `audio=audioseal`, `video=hunyuan+videoseal`
 - Offline-first: lazily initializes text model/tokenizer from local cache; falls back to `sshleifer/tiny-gpt2` if configured model not found (still offline)
-- Config-driven: reads `config/text_config.yaml` and modality-specific configs
+- Config-driven: reads `config/text_config.yaml` and modality-specific configs for comprehensive AIGC identification
+
+### AIGC Content Identification Operation Types
+- **`operation='watermark'`** (default): Hidden watermarking for technical protection and content tracing
+  - Uses advanced deep learning algorithms (CredID, VideoSeal, AudioSeal, etc.)
+  - Invisible to users but detectable with proper identification tools
+  - Robust against various attacks and transformations
+  - Suitable for copyright protection, content authentication, and technical tracing
+
+- **`operation='visible_mark'`**: Visible compliance marking for AIGC content transparency
+  - Adds visible text/audio markers for regulatory compliance and user awareness
+  - Clearly indicates AI-generated content to users, ensuring transparency
+  - Supports customizable position, style, duration, and content
+  - Meets regulatory requirements and supports user informed consent
 
 Quick start:
 ```python
@@ -41,60 +66,88 @@ from src.unified.watermark_tool import WatermarkTool
 
 tool = WatermarkTool()
 
-# AI生成模式 (Generate Mode) - Web界面选择"AI生成内容"
-# Text (文本水印仅支持AI生成模式)
+# ===== AIGC内容隐式标识 (Hidden Identification, operation='watermark') =====
+# 适用于版权保护、内容追踪、技术防护等场景
+
+# Text (文本隐式标识，仅支持AI生成模式)
 txt = tool.embed("示例文本", "wm_msg", 'text')
 res = tool.extract(txt, 'text')
 
-# Image (图像AI生成 + 水印嵌入，自动保存原图和水印图用于对比)
-img = tool.embed("a cat", "hello_vs", 'image')  # 返回水印图像
+# Image (图像AI生成 + 隐式标识，自动保存原图和标识图用于对比)
+img = tool.embed("a cat", "hello_vs", 'image')  # 返回标识图像
 
-# Audio (音频AI生成 + 水印嵌入，自动保存原音频和水印音频)
+# Audio (音频AI生成 + 隐式标识，自动保存原音频和标识音频)
 aud = tool.embed("audio content", "hello_audio", 'audio', output_path="outputs/audio/a.wav")
 
-# Video (视频AI生成 + 水印嵌入，自动保存原视频和水印视频)
+# Video (视频AI生成 + 隐式标识，自动保存原视频和标识视频)
 vid = tool.embed("阳光洒在海面上", "video_wm", 'video')
 
-# 上传现有文件模式 (Upload File Mode) - Web界面选择"上传现有文件"
-# Image watermarking (图像文件水印嵌入)
-img_wm = tool.embed("watermark message", "hello_img", 'image', 
+# AIGC内容上传文件标识 (Existing AIGC Content Identification)
+img_wm = tool.embed("watermark message", "hello_img", 'image',
                     image_input="/path/to/image.jpg")
-                    
-# Audio watermarking (音频文件水印嵌入)
 aud_wm = tool.embed("watermark message", "hello_audio", 'audio',
                     audio_input="/path/to/audio.wav", output_path="outputs/watermarked.wav")
-                    
-# Video watermarking (视频文件水印嵌入，自动转码为浏览器兼容格式)
 vid_wm = tool.embed("watermark message", "hello_video", 'video',
                     video_input="/path/to/video.mp4")
+
+# ===== AIGC内容显式标识 (Visible Marking, operation='visible_mark') =====
+# 适用于监管合规、用户告知、透明标识等场景
+# 文本显式标识
+original_text = "这是一段原始文本内容。"
+marked_text = tool.embed(original_text, "本内容由AI生成", 'text',
+                        operation='visible_mark', position='start')
+
+# 图像显式标识
+marked_img = tool.embed("/path/to/image.jpg", "测试标识", 'image',
+                       operation='visible_mark',
+                       position='bottom_right', font_percent=5.0)
+
+# 音频显式标识 (需要Bark TTS)
+marked_audio = tool.embed("/path/to/audio.wav", "本内容由AI生成", 'audio',
+                         operation='visible_mark')
+
+# 视频显式标识
+marked_video = tool.embed("/path/to/video.mp4", "本内容由AI生成", 'video',
+                         operation='visible_mark')
+
+# AIGC内容标识便捷接口
+marked_content = tool.add_visible_mark(content="原始内容",
+                                      message="本内容由人工智能生成", modality='text')
+detection = tool.detect_visible_mark(content=marked_content, modality='text')
 ```
 
-Parameters and returns:
-- **Text**: 
-  - **仅支持AI生成模式**，用于CredID文本水印生成
-  - auto-uses cached model/tokenizer; returns watermarked `str`
-  - extraction returns `{detected: bool, message: str, confidence: float}`
-  
-- **Image**: 
-  - **AI生成模式**: 基于Stable Diffusion生成图像后嵌入水印，返回`PIL.Image`
-  - **上传文件模式**: 使用`image_input`参数上传现有图像文件进行水印嵌入
-  - **后端支持**: VideoSeal (默认), PRC-Watermark (可选)
-  - **对比显示**: 自动保存原图和水印图，Web界面显示before/after对比
-  - `extract` supports `replicate/chunk_size` for enhanced detection confidence
-  
-- **Audio**: 
-  - **AI生成模式**: Bark TTS生成音频 + AudioSeal水印嵌入，`output_path`保存文件
-  - **上传文件模式**: 使用`audio_input`参数上传现有音频文件进行水印嵌入  
-  - **格式支持**: WAV, MP3, FLAC等主流音频格式
-  - **对比显示**: 自动保存原音频和水印音频，支持Web播放器对比
-  - returns `torch.Tensor | str`; extraction returns `{detected, message, confidence}`
-  
-- **Video**: 
-  - **AI生成模式**: HunyuanVideo生成视频 + VideoSeal水印嵌入
-  - **上传文件模式**: 使用`video_input`参数上传现有视频文件进行水印嵌入
-  - **浏览器兼容**: 自动转码为H.264+AAC+faststart格式确保Web播放
-  - **对比显示**: 自动保存原视频和水印视频，支持并排播放对比
-  - returns saved video path; `extract` returns `{detected, message, confidence, metadata}`
+AIGC Content Identification Interface Parameters and Returns:
+- **Text Content Identification (Hidden + Visible)**:
+  - **隐式标识**: `embed(prompt, message, 'text')` → 返回标识文本 `str` （仅AI生成模式，适用于版权保护）
+  - **显式标识**: `embed(original_text, mark_text, 'text', operation='visible_mark', position='start|end')` → 返回带合规标识文本 `str`
+  - Extraction returns `{detected: bool, message: str, confidence: float}` for both operations
+
+- **Image Content Identification (Hidden + Visible)**:
+  - **隐式标识**: 基于Stable Diffusion生成图像后嵌入技术标识，返回`PIL.Image` （AI生成模式）或直接对上传图像嵌入标识（上传模式）
+  - **显式标识**: `embed('/path/to/image.jpg', mark_text, 'image', operation='visible_mark', position='bottom_right', font_percent=5.0, font_color='#FFFFFF')` → 返回带合规标识图像 `PIL.Image`
+  - **Technology backends**: VideoSeal (default), PRC-Watermark (optional)
+  - **Effect comparison**: Automatically saves original and identified images, Web interface shows before/after comparison
+  - `extract` supports `operation='watermark|visible_mark'`, `replicate/chunk_size` for enhanced detection confidence
+
+- **Audio Content Identification (Hidden + Visible)**:
+  - **隐式标识**: Bark TTS生成音频 + AudioSeal技术标识嵌入（AI生成模式）或直接对上传音频嵌入标识（上传模式）
+  - **显式标识**: `embed('/path/to/audio.wav', mark_text, 'audio', operation='visible_mark', position='start', voice_preset='v2/zh_speaker_6')` → 返回带语音合规标识的音频
+  - **Format support**: WAV, MP3, FLAC等主流音频格式
+  - **Effect comparison**: 自动保存原音频和标识音频，支持Web播放器对比
+  - Returns `torch.Tensor | str`; extraction returns `{detected, message, confidence}`
+
+- **Video Content Identification (Hidden + Visible)**:
+  - **隐式标识**: HunyuanVideo生成视频 + VideoSeal技术标识嵌入（AI生成模式）或直接对上传视频嵌入标识（上传模式）
+  - **显式标识**: `embed('/path/to/video.mp4', mark_text, 'video', operation='visible_mark', position='bottom_right', font_percent=4.0, duration_seconds=2.0)` → 返回带合规文字标识的视频
+  - **Browser compatibility**: 自动转码为H.264+AAC+faststart格式确保Web播放
+  - **Effect comparison**: 自动保存原视频和标识视频，支持并排播放对比
+  - Returns saved video path; `extract` returns `{detected, message, confidence, metadata}`
+
+**AIGC Content Identification Convenience Methods**:
+- `tool.add_visible_mark(content, message, modality, **kwargs)` → 一键添加AIGC显式合规标识
+- `tool.detect_visible_mark(content, modality, **kwargs)` → 检测AIGC显式标识
+- `tool.get_supported_operations()` → `['watermark', 'visible_mark']`
+- `tool.get_operation_info()` → 返回AIGC标识操作类型详细信息
 
 Offline cache hints:
 - Set `TRANSFORMERS_OFFLINE=1` and `HF_HUB_OFFLINE=1`; store models under `models/` or point `HF_HOME/HF_HUB_CACHE` to local hub
@@ -145,8 +198,19 @@ pip install git+https://github.com/suno-ai/bark.git
 from src.unified.watermark_tool import WatermarkTool
 
 tool = WatermarkTool()
+
+# 隐式水印（默认）
 text_wm = tool.embed("这是一个测试文本", "msg", 'text')
 text_res = tool.extract(text_wm, 'text')
+
+# 显式标识
+marked_text = tool.embed("原始文本", "本内容由AI生成", 'text',
+                        operation='visible_mark', position='start')
+mark_res = tool.extract(marked_text, 'text', operation='visible_mark')
+
+# 便捷接口
+marked_content = tool.add_visible_mark("原始内容", "显式标识", 'text')
+detection = tool.detect_visible_mark(marked_content, 'text')
 
 # Optional: choose algorithms
 tool.set_algorithm('image', 'videoseal')
@@ -511,35 +575,35 @@ def get_task_status(task_id):
 - **内存优化**: 大文件流式处理，避免内存溢出
 - **安全验证**: 文件类型验证和大小限制确保系统安全
 
-## Key Implementation Details
+## AIGC Content Identification Implementation Details
 
-### Text Watermarking (CredID)
-- **仅支持AI生成模式**: 基于LLM的文本生成与水印嵌入
-- Multi-bit watermarking framework supporting multiple LLM vendors
+### Text Content Identification (CredID Hidden Watermarking)
+- **仅支持AI生成模式**: 基于LLM的统计特征进行文本内容标识
+- Multi-bit identification framework supporting multiple LLM vendors for AIGC text tracing
 - Privacy-preserving design with Trusted Third Party (TTP) architecture
-- Error correction codes (ECC) for robustness against attacks
-- Joint-voting mechanism for multi-party watermark extraction
-- **离线优先**: 优先使用本地缓存模型，支持完全离线运行
+- Error correction codes (ECC) for robustness against various attacks and transformations
+- Joint-voting mechanism for multi-party AIGC content identification
+- **离线优先**: 优先使用本地缓存模型，支持完全离线AIGC识别运行
 
-### Image Watermarking (Dual Backend Support)
+### Image Content Identification (Dual Backend Support)
 **支持后端**: VideoSeal (默认), PRC-Watermark (可选)
 **双模式支持**: AI生成模式 + 上传文件模式
 
-#### VideoSeal 图像水印 (默认)
-- **单帧视频处理**: 将图像视作单帧视频，复用VideoSeal视频水印算法
-- **检测增强**: 支持`replicate`和`chunk_size`参数，通过多帧复制提升检测置信度
-- **低分辨率优化**: `lowres_attenuation`参数优化低分辨率图像处理
-- **AI生成模式**: Stable Diffusion 2.1 + VideoSeal水印，自动保存原图和水印图
-- **上传文件模式**: 直接对上传图像嵌入VideoSeal水印，支持多种图像格式
+#### VideoSeal 图像标识技术 (默认)
+- **单帧视频处理**: 将图像视作单帧视频，复用VideoSeal深度学习标识算法
+- **检测增强**: 支持`replicate`和`chunk_size`参数，通过多帧复制提升AIGC内容检测置信度
+- **低分辨率优化**: `lowres_attenuation`参数优化低分辨率AIGC图像处理
+- **AI生成模式**: Stable Diffusion 2.1 + VideoSeal标识，自动保存原图和标识图
+- **上传文件模式**: 直接对上传的AIGC图像嵌入VideoSeal标识，支持多种图像格式
 
 #### PRC-Watermark (可选后端)
-- **完整的PRC水印系统**: 基于Stable Diffusion的伪随机纠错码水印
+- **完整的PRC标识系统**: 基于Stable Diffusion的伪随机纠错码AIGC内容标识
 - **统一的exact_inversion实现**: 所有模式都使用相同的核心逆向函数，仅通过参数调节
-- **多精度逆向模式**: 
-  - FAST模式: 20步推理，decoder_inv=False，快速检测
-  - ACCURATE模式: 50步推理，decoder_inv=True，精度平衡
-  - EXACT模式: 50步推理，decoder_inv=True，最高精度
-- **100%检测成功率**: 所有模式都能完美检测并解码水印消息
+- **多精度逆向模式**:
+  - FAST模式: 20步推理，decoder_inv=False，快速AIGC内容检测
+  - ACCURATE模式: 50步推理，decoder_inv=True，精度平衡检测
+  - EXACT模式: 50步推理，decoder_inv=True，最高精度检测
+- **100%检测成功率**: 所有模式都能完美检测并解码AIGC标识消息
 - **本地模型支持**: 离线模式使用本地Stable Diffusion 2.1模型
 - **简洁架构**: 统一的`_image_to_latents()`函数，消除代码冗余
 
@@ -549,19 +613,19 @@ def get_task_status(task_id):
 - **对比显示**: Web界面自动显示原图vs水印图的并排对比
 - **格式支持**: JPG, PNG, BMP, WebP等主流图像格式
 
-### Audio Watermarking (AudioSeal)
+### Audio Content Identification (AudioSeal)
 **双模式支持**: AI生成模式(Bark TTS) + 上传文件模式
-**核心算法**: Meta AudioSeal 深度学习音频水印
+**核心算法**: Meta AudioSeal 深度学习音频内容标识
 
 #### 技术特性
-- **16位消息编码**: 基于SHA256哈希的字符串消息编码系统，确保编码一致性
+- **16位消息编码**: 基于SHA256哈希的字符串消息编码系统，确保AIGC音频标识一致性
 - **高保真嵌入**: SNR>40dB（实测44.45dB），听觉质量几乎无损失
-- **双处理模式**: 
-  - **AI生成模式**: Bark TTS文本转语音 + AudioSeal水印嵌入（3-8秒生成）
-  - **上传文件模式**: 直接对上传音频文件进行水印嵌入（0.93秒嵌入，0.04秒提取）
-- **原文件保存**: 两种模式都自动保存原音频和水印音频，支持Web界面对比播放
+- **双处理模式**:
+  - **AI生成模式**: Bark TTS文本转语音 + AudioSeal标识嵌入（3-8秒生成）
+  - **上传文件模式**: 直接对上传AIGC音频文件进行标识嵌入（0.93秒嵌入，0.04秒提取）
+- **原文件保存**: 两种模式都自动保存原音频和标识音频，支持Web界面对比播放
 - **设备自适应**: 支持CPU/CUDA自动切换和设备张量管理，修复设备不匹配问题
-- **批处理支持**: 高效的批量音频处理能力（3个音频2.8秒）
+- **批处理支持**: 高效的批量AIGC音频处理能力（3个音频2.8秒）
 - **格式兼容**: 支持WAV、MP3、FLAC、AAC、M4A等主流音频格式读写
 - **鲁棒性验证**: 对不同SNR级别噪声的抗性测试（SNR≥10dB可靠检测）
 
@@ -571,17 +635,17 @@ def get_task_status(task_id):
 - **智能缓存**: 优先使用本地缓存，支持符号链接和自定义缓存目录
 - **参数控制**: `temperature`控制生成随机性，`model_size`控制模型质量
 
-### Video Watermarking (HunyuanVideo + VideoSeal)
+### Video Content Identification (HunyuanVideo + VideoSeal)
 **双模式支持**: AI生成模式(HunyuanVideo) + 上传文件模式
-**技术栈**: HunyuanVideo文生视频 + VideoSeal视频水印
+**技术栈**: HunyuanVideo文生视频 + VideoSeal视频内容标识
 
 #### 核心特性
 - **双处理流程**:
-  - **AI生成模式**: HunyuanVideo文本生成视频 + VideoSeal水印嵌入
-  - **上传文件模式**: 直接对上传视频文件进行VideoSeal水印嵌入
-- **原文件保存**: 两种模式都自动保存原视频和水印视频，支持Web界面并排播放对比
+  - **AI生成模式**: HunyuanVideo文本生成视频 + VideoSeal标识嵌入
+  - **上传文件模式**: 直接对上传AIGC视频文件进行VideoSeal标识嵌入
+- **原文件保存**: 两种模式都自动保存原视频和标识视频，支持Web界面并排播放对比
 - **浏览器兼容**: 自动转码为H.264+AAC+faststart格式，确保跨浏览器Web播放
-- **内存优化**: 支持CPU内存卸载和VAE tiling，处理大分辨率视频
+- **内存优化**: 支持CPU内存卸载和VAE tiling，处理大分辨率AIGC视频
 - **离线优先**: 优先使用本地HunyuanVideo模型快照，避免网络下载
 
 #### HunyuanVideo集成
@@ -603,16 +667,17 @@ def get_task_status(task_id):
 - **快速开始**: 启用faststart优化Web流媒体播放
 - **文件管理**: 智能处理转码后的文件命名和访问
 
-### Unified Interface (Enhanced)
-The `WatermarkTool` class in `src/unified/watermark_tool.py` provides:
-- **Consistent API**: 统一的`embed()`和`extract()`接口支持所有模态
-- **Dual-mode support**: 每个模态都支持AI生成和文件上传两种模式
-- **Original file preservation**: 自动保存原文件和水印文件供对比显示
-- **Batch processing**: 批处理能力支持大规模文件处理
-- **Algorithm switching**: 运行时算法切换（如VideoSeal/PRC图像后端）
-- **Configuration management**: 跨模态配置管理和参数优化
-- **Web integration**: 与Flask Web界面的无缝集成
-- **Error handling**: 完善的错误处理和降级策略
+### AIGC Content Identification Unified Interface (Enhanced)
+The `WatermarkTool` class in `src/unified/watermark_tool.py` provides comprehensive AIGC content identification capabilities:
+- **Consistent AIGC API**: 统一的`embed()`和`extract()`接口支持所有模态的AIGC内容标识
+- **Dual-mode support**: 每个模态都支持AI生成和文件上传两种AIGC内容处理模式
+- **Dual-operation support**: 支持隐式标识(watermark)和显式标识(visible_mark)两种操作类型
+- **Original content preservation**: 自动保存原文件和标识文件供before/after效果对比显示
+- **Batch processing**: 批处理能力支持大规模AIGC内容处理
+- **Technology switching**: 运行时标识技术切换（如VideoSeal/PRC图像后端）
+- **Configuration management**: 跨模态配置管理和AIGC标识参数优化
+- **Web integration**: 与Flask Web界面的无缝集成，提供完整AIGC标识展示
+- **Error handling**: 完善的错误处理和降级策略，确保AIGC标识系统稳定性
 
 ## Working with Different Components
 

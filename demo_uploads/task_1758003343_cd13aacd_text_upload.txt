@@ -1,0 +1,4 @@
+and a sample application of the NLTK library.
+The next steps will cover how to use these algorithms for text mining in R.
+# Get the NLTK package with install_github() if not installed already.
+In this

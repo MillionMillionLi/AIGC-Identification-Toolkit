@@ -1,23 +1,31 @@
-# 统一多模态水印工具设计文档
+# AIGC内容标识系统设计文档
 
 ## 🎯 项目目标
 
-开发一个功能完善的统一多模态水印工具，支持：
+构建一个功能完整的AIGC（人工智能生成内容）标识系统，为AI生成内容提供多层次的标识解决方案，满足版权保护、合规监管和内容溯源等需求：
 
-### 📋 支持模态与算法
-- **文本水印**：基于CredID算法的LLM文本水印（仅AI生成模式）
-- **图像水印**：双后端支持（VideoSeal默认，PRC-Watermark可选）
-- **音频水印**：基于AudioSeal算法，完整集成Bark文本转语音支持
-- **视频水印**：基于HunyuanVideo生成 + VideoSeal水印技术栈
+### 📋 标识技术体系
+- **隐式水印技术**：基于深度学习的不可见水印，支持版权保护和内容追踪
+  - **文本隐式水印**：CredID算法的LLM文本水印（仅AI生成模式）
+  - **图像隐式水印**：双后端支持（VideoSeal默认，PRC-Watermark可选）
+  - **音频隐式水印**：AudioSeal算法，完整集成Bark文本转语音支持
+  - **视频隐式水印**：HunyuanVideo生成 + VideoSeal水印技术栈
 
-### 🌟 核心特性
+- **显式标识技术**：可见的合规标记，满足监管要求和用户知情权
+  - **文本显式标识**：在文本中插入标准合规标识文案
+  - **图像显式标识**：图像叠加可见文字标记，支持多种位置和样式
+  - **音频显式标识**：语音标识插入（基于Bark TTS）
+  - **视频显式标识**：视频画面可见文字标记（基于FFmpeg）
+
+- **隐式元数据标识**：（规划中）结构化元数据嵌入，支持生成模型、时间戳、参数等信息标识
+
+### 🌟 核心价值
+- **全链路内容标识**：从生成到发布的完整标识解决方案
+- **多维度合规支持**：同时满足技术防护和监管合规的双重需求
 - **双模式支持**：每个模态都支持"AI生成内容"和"上传现有文件"两种处理模式
-- **统一接口**：提供一致的`embed()`和`extract()`API接口
-- **对比显示**：Web界面自动保存并显示原文件vs水印文件的并排对比
-- **可见标识合规**：支持AI生成内容的显式标识，满足监管要求
-- **离线优先**：优先使用本地模型缓存，避免网络依赖
-- **浏览器兼容**：视频/音频文件自动转码确保跨浏览器Web播放
-- **配置驱动**：YAML配置文件管理所有参数，支持运行时调整
+- **统一接口**：提供一致的`embed()`和`extract()`API接口，支持`operation='watermark|visible_mark'`
+- **对比显示**：Web界面自动保存并显示原文件vs标识文件的并排对比
+- **产业级部署**：离线优先、浏览器兼容、配置驱动，满足生产环境需求
 
 ## 📁 目录结构与层级关系（当前实现）
 
@@ -25,7 +33,8 @@
 unified_watermark_tool/
 ├── config/
 │   ├── default_config.yaml             # 统一配置文件（所有模态）
-│   └── text_config.yaml                # 文本水印专用配置
+│   ├── text_config.yaml                # 文本水印专用配置
+│   └── visible_mark_config.yaml        # 可见标识功能配置
 ├── src/
 │   ├── __init__.py
 │   ├── unified/                        # 统一引擎与高层门面
@@ -56,6 +65,7 @@ unified_watermark_tool/
 │   │   ├── videoseal_wrapper.py        # VideoSeal水印算法
 │   │   └── utils.py                    # 视频I/O、转码、性能监控
 │   └── utils/                          # 通用工具和模型管理
+│       ├── visible_mark.py             # 可见标识模块（合规标识添加）
 ├── templates/                          # Web界面模板
 │   └── index.html                      # 统一Web演示界面
 ├── demo_outputs/                       # 演示输出目录
@@ -72,137 +82,197 @@ unified_watermark_tool/
 
 层级关系（自顶向下）：
 - **Web应用层**：`app.py`（Flask Web后端）+ `templates/index.html`（前端界面）
-- **应用层**：`WatermarkTool`（推荐API入口，支持双模式）
-- **引擎层**：`UnifiedWatermarkEngine`（统一路由 text/image/audio/video）
-- **算法层**：各模态水印实现（支持AI生成+文件上传）
-- **工具层**：`utils`、各模态内部的I/O、模型管理、文件转码
+- **应用层**：`WatermarkTool`（推荐API入口，支持双模式双操作）
+- **引擎层**：`UnifiedWatermarkEngine`（统一路由 text/image/audio/video，支持watermark/visible_mark操作）
+- **算法层**：各模态标识技术实现（支持AI生成+文件上传，支持隐式水印+显式标识）
+- **工具层**：`utils`、各模态内部的I/O、模型管理、文件转码、可见标识模块
 
 ## 🏗️ 核心架构设计
 
-### 系统架构概览
+### AIGC内容标识系统架构
 
-本工具采用**分层模块化架构**，支持完整的Web演示和API调用：
+本系统采用**分层模块化架构**，为AIGC内容提供全方位标识解决方案：
 
-1. **Web演示层**：
+1. **Web应用层**：
    - Flask Web应用提供REST API和文件服务
-   - 统一前端界面支持双模式切换和对比显示
-   - 实时状态反馈和多媒体播放支持
+   - 统一前端界面支持双模式（AI生成/文件上传）和双操作（隐式水印/显式标识）切换
+   - 实时状态反馈和多媒体播放支持，标识效果对比展示
 
 2. **用户接口层**：
-   - `WatermarkTool`提供统一API接口
-   - 支持AI生成和文件上传两种模式
-   - 自动保存原文件和水印文件用于对比
+   - `WatermarkTool`提供统一的AIGC内容标识API接口
+   - 支持AI生成和文件上传两种内容处理模式
+   - 支持隐式水印和显式标识两种标识操作类型
+   - 自动保存原文件和标识文件用于效果对比
 
 3. **核心引擎层**：
-   - `UnifiedWatermarkEngine`统一管理所有水印操作
-   - 懒加载和离线优先策略
-   - 双模式处理逻辑和错误恢复
+   - `UnifiedWatermarkEngine`统一管理所有标识操作
+   - 智能路由：根据模态（text/image/audio/video）和操作（watermark/visible_mark）选择合适技术
+   - 懒加载和离线优先策略，双模式处理逻辑和错误恢复
 
-4. **算法实现层**：
-   - 各模态具体算法封装和实现
-   - 后端选择和参数配置管理
-   - 批处理和性能优化
+4. **标识技术层**：
+   - 各模态的隐式水印算法：CredID、VideoSeal、AudioSeal等深度学习技术
+   - 各模态的显式标识算法：文本插入、图像叠加、语音标识、视频标记
+   - 后端技术选择和参数配置管理，批处理和性能优化
 
-5. **配置和工具层**：
-   - YAML配置文件管理
-   - 模型缓存和离线加载
-   - 文件I/O、转码、质量评估
+5. **基础设施层**：
+   - YAML配置文件管理和模型缓存离线加载
+   - 多媒体文件I/O、格式转码、质量评估
+   - 可见标识模块（合规标识生成）和元数据处理
 
-### 1. 统一水印引擎（UnifiedWatermarkEngine）- 已升级支持双模式
+### 1. 统一内容标识引擎（UnifiedWatermarkEngine）- 支持双模式双操作
 
 位置：`src/unified/unified_engine.py`（高层封装请使用 `src/unified/watermark_tool.py`）
 
 核心特性：
 - **双模式支持**：每个模态都支持"AI生成内容"和"上传现有文件"两种处理模式
-- **统一接口**：`embed(prompt, message, modality, **kwargs)`和`extract(content, modality, **kwargs)`四模态统一接口，按需懒加载模块
-- **原文件保存**：AI生成模式和文件上传模式都自动保存原文件和水印文件用于Web对比显示
-- **默认算法**：`text=credid`（仅AI生成），`image=videoseal`，`audio=audioseal`，`video=hunyuan+videoseal`
+- **双操作支持**：支持隐式水印（`operation='watermark'`）和显式标识（`operation='visible_mark'`）两种标识操作
+- **统一接口**：`embed(content, message, modality, operation='watermark|visible_mark', **kwargs)`和`extract(content, modality, operation='watermark|visible_mark', **kwargs)`四模态统一接口
+- **智能路由**：根据模态和操作类型自动选择最适合的标识技术
+- **原文件保存**：AI生成模式和文件上传模式都自动保存原文件和标识文件用于Web对比显示
+- **技术选择**：`text=credid`（仅AI生成），`image=videoseal`，`audio=audioseal`，`video=hunyuan+videoseal`
 - **离线优先**：文本/图像/视频模型优先从本地缓存加载，避免网络依赖
 - **配置驱动**：读取`config/default_config.yaml`和`config/text_config.yaml`，支持运行时参数调整
 
-### 🎯 双模式使用示例（推荐通过 `WatermarkTool`）:
+### 🎯 AIGC内容标识接口使用示例（推荐通过 `WatermarkTool`）:
 
 ```python
 from src.unified.watermark_tool import WatermarkTool
 
 tool = WatermarkTool()
 
-# ===== AI生成模式（Generate Mode）=====
+# ===== AIGC内容隐式水印标识（operation='watermark'）=====
+# 适用于版权保护、内容追踪、技术防护等场景
 
-# 文本水印（仅支持AI生成模式）
+# 文本水印标识（仅支持AI生成模式）
 watermarked_text = tool.embed("这是测试文本", "wm_msg", 'text')
 text_result = tool.extract(watermarked_text, 'text')
 # 返回: {'detected': True, 'message': 'wm_msg', 'confidence': 0.95}
 
-# 图像AI生成 + 水印嵌入（VideoSeal默认后端）
+# 图像AI生成 + 隐式水印标识（VideoSeal默认后端）
 img = tool.embed("a cat under the sun", "hello_vs", 'image')
 img_res = tool.extract(img, 'image', replicate=16, chunk_size=16)
-# 后端自动保存original_image.png和watermarked_image.png用于Web对比
+# 后端自动保存original_image.png和watermarked_image.png用于效果对比
 
-# 音频AI生成（Bark TTS）+ 水印嵌入
-audio_out = tool.embed("Hello world", "hello_audio", 'audio', 
+# 音频AI生成（Bark TTS）+ 隐式水印标识
+audio_out = tool.embed("Hello world", "hello_audio", 'audio',
                       output_path="outputs/audio/generated.wav")
 audio_res = tool.extract(audio_out, 'audio')
 # 后端自动保存original_audio.wav和watermarked_audio.wav
 
-# 视频AI生成（HunyuanVideo）+ 水印嵌入
+# 视频AI生成（HunyuanVideo）+ 隐式水印标识
 video_path = tool.embed("阳光洒在海面上", "video_wm", 'video',
                        num_frames=49, height=720, width=1280)
 video_res = tool.extract(video_path, 'video')
 # 后端自动保存original_video.mp4和watermarked_video.mp4
 
+# ===== 上传文件隐式水印标识模式 =====
+# 对已有AIGC内容进行后处理标识
 
-# ===== 上传文件模式（Upload File Mode）=====
-
-# 图像文件水印嵌入
+# 图像文件隐式水印标识
 img_wm = tool.embed("watermark message", "file_msg", 'image',
                     image_input="/path/to/image.jpg")
 img_file_res = tool.extract(img_wm, 'image')
 
-# 音频文件水印嵌入  
+# 音频文件隐式水印标识
 audio_wm = tool.embed("audio watermark", "audio_msg", 'audio',
                      audio_input="/path/to/audio.wav",
                      output_path="outputs/watermarked_audio.wav")
 audio_file_res = tool.extract(audio_wm, 'audio')
 
-# 视频文件水印嵌入（自动转码为浏览器兼容格式）
+# 视频文件隐式水印标识（自动转码为浏览器兼容格式）
 video_wm = tool.embed("video watermark", "video_msg", 'video',
                      video_input="/path/to/video.mp4")
 video_file_res = tool.extract(video_wm, 'video')
+
+# ===== AIGC内容显式标识操作（operation='visible_mark'）=====
+# 适用于监管合规、用户告知、内容标识等场景
+
+# 文本显式标识
+original_text = "这是一段原始文本内容。"
+marked_text = tool.embed(original_text, "本内容由人工智能生成/合成", 'text',
+                        operation='visible_mark', position='start')
+text_mark_res = tool.extract(marked_text, 'text', operation='visible_mark')
+
+# 图像显式标识（传入图像文件路径）
+marked_img = tool.embed("/path/to/image.jpg", "测试标识", 'image',
+                       operation='visible_mark',
+                       position='bottom_right', font_percent=5.0, font_color='#FF0000')
+img_mark_res = tool.extract(marked_img, 'image', operation='visible_mark')
+
+# 音频显式标识（需要Bark TTS）
+marked_audio = tool.embed("/path/to/audio.wav", "本内容由人工智能生成", 'audio',
+                         operation='visible_mark',
+                         position='start', voice_preset='v2/zh_speaker_6')
+audio_mark_res = tool.extract(marked_audio, 'audio', operation='visible_mark')
+
+# 视频显式标识
+marked_video = tool.embed("/path/to/video.mp4", "本内容由人工智能生成", 'video',
+                         operation='visible_mark',
+                         position='bottom_right', font_percent=4.0, duration_seconds=3.0)
+video_mark_res = tool.extract(marked_video, 'video', operation='visible_mark')
+
+# ===== AIGC内容标识便捷接口 =====
+
+# 一键添加显式标识（合规标记）
+marked_content = tool.add_visible_mark(
+    content="原始内容",  # 文本字符串或文件路径
+    message="本内容由人工智能生成/合成",  # 标准合规文案
+    modality='text',  # 或 'image', 'audio', 'video'
+    position='end'
+)
+
+# 检测显式标识
+detection_result = tool.detect_visible_mark(
+    content=marked_content,
+    modality='text'
+)
+# 返回: {'detected': True, 'message': '本内容由人工智能生成/合成', 'confidence': 1.0}
+
+# ===== 信息查询接口 =====
+
+# 查询支持的操作类型
+supported_ops = tool.get_supported_operations()
+# 返回: ['watermark', 'visible_mark']
+
+# 查询操作详细信息
+op_info = tool.get_operation_info()
+# 返回操作类型的详细描述和支持的模态
 ```
 
-### 📋 重要参数与返回值（双模式支持）：
+### 📋 AIGC内容标识接口参数与返回值：
 
-#### 文本水印（仅AI生成模式）
-- **接口**: `embed(prompt, message, 'text', model=None, tokenizer=None)` → `str`
-- **说明**: 基于LLM的文本生成与水印嵌入，自动使用引擎缓存的模型/分词器
-- **返回**: 水印文本字符串
-- **提取**: `extract(watermarked_text, 'text')` → `{detected: bool, message: str, confidence: float}`
+#### 文本内容标识（隐式水印+显式标识）
+- **隐式水印**: `embed(prompt, message, 'text')` → `str` （仅AI生成模式，适用于版权保护）
+- **显式标识**: `embed(original_text, mark_text, 'text', operation='visible_mark', position='start|end')` → `str`
+- **技术原理**: 隐式水印基于LLM的统计特征嵌入；显式标识通过文本插入实现合规标记
+- **返回内容**: 带标识的文本字符串，支持后续检测和验证
+- **提取接口**: `extract(text, 'text', operation='watermark|visible_mark')` → `{detected: bool, message: str, confidence: float}`
 
-#### 图像水印（双模式支持）
-- **AI生成模式**: `embed(prompt, message, 'image', **kwargs)` → `PIL.Image`  
-- **上传文件模式**: `embed(message, watermark_msg, 'image', image_input='/path/to/image.jpg')` → `PIL.Image`
-- **后端选择**: VideoSeal（默认）或PRC-Watermark（配置algorithm: prc）
-- **Web保存**: 自动保存original和watermarked文件用于对比显示
-- **提取优化**: 支持`replicate`和`chunk_size`参数提升检测置信度
+#### 图像内容标识（隐式水印+显式标识）
+- **隐式水印**: `embed(prompt, message, 'image', **kwargs)` → `PIL.Image` （AI生成模式，适用于版权保护）或 `embed("content", message, 'image', image_input='/path', **kwargs)` （上传模式，后处理标识）
+- **显式标识**: `embed('/path/to/image.jpg', mark_text, 'image', operation='visible_mark', position='bottom_right', font_percent=5.0, font_color='#FFFFFF')` → `PIL.Image`
+- **技术架构**: VideoSeal（默认，基于深度学习）或PRC-Watermark（可选，基于扩散模型）
+- **标识展示**: 自动保存原图和标识图文件，Web界面提供before/after效果对比
+- **检测增强**: 支持`replicate`和`chunk_size`参数提升检测置信度
 
-#### 音频水印（双模式支持）
-- **AI生成模式**: `embed(tts_prompt, message, 'audio', output_path=None)` → `torch.Tensor | str`
-- **上传文件模式**: `embed(message, watermark_msg, 'audio', audio_input='/path/to/audio.wav')` → `torch.Tensor | str`
-- **TTS集成**: Bark文本转语音，支持多语言和音色选择
-- **格式支持**: WAV, MP3, FLAC, AAC, M4A等音频格式
-- **Web保存**: 自动保存original和watermarked音频用于对比播放
+#### 音频内容标识（隐式水印+显式标识）
+- **隐式水印**: `embed(tts_prompt, message, 'audio', output_path=None)` → `torch.Tensor | str` （AI生成模式，适用于版权保护）或 `embed("content", message, 'audio', audio_input='/path', **kwargs)` （上传模式，后处理标识）
+- **显式标识**: `embed('/path/to/audio.wav', mark_text, 'audio', operation='visible_mark', position='start', voice_preset='v2/zh_speaker_6')` → `torch.Tensor | str`
+- **技术集成**: Bark TTS多语言语音生成 + AudioSeal深度学习音频水印
+- **格式兼容**: 支持WAV, MP3, FLAC, AAC, M4A等主流音频格式
+- **标识展示**: 自动保存原音频和标识音频，Web界面支持并排播放对比
 
-#### 视频水印（双模式支持）  
-- **AI生成模式**: `embed(prompt, message, 'video', num_frames=49, height=720, width=1280)` → `str`
-- **上传文件模式**: `embed(message, watermark_msg, 'video', video_input='/path/to/video.mp4')` → `str`
-- **技术栈**: HunyuanVideo文生视频 + VideoSeal水印算法
-- **浏览器兼容**: 自动转码为H.264+AAC+faststart格式确保Web播放
-- **Web保存**: 自动保存original和watermarked视频用于对比播放
+#### 视频内容标识（隐式水印+显式标识）
+- **隐式水印**: `embed(prompt, message, 'video', num_frames=49, height=720, width=1280)` → `str` （AI生成模式，适用于版权保护）或 `embed("content", message, 'video', video_input='/path', **kwargs)` （上传模式，后处理标识）
+- **显式标识**: `embed('/path/to/video.mp4', mark_text, 'video', operation='visible_mark', position='bottom_right', font_percent=4.0, duration_seconds=2.0)` → `str`
+- **技术架构**: HunyuanVideo文生视频技术 + VideoSeal深度学习水印算法
+- **浏览器优化**: 自动转码为H.264+AAC+faststart格式，确保跨平台Web播放兼容性
+- **标识展示**: 自动保存原视频和标识视频，Web界面支持并排播放效果对比
 
 #### 统一提取接口
-- **所有模态**: `extract(content, modality, **kwargs)` → `{detected: bool, message: str, confidence: float, metadata: dict}`
+- **所有模态**: `extract(content, modality, operation='watermark|visible_mark', **kwargs)` → `{detected: bool, message: str, confidence: float, metadata: dict}`
 - **增强参数**: 图像/视频支持`replicate`和`chunk_size`，视频支持`max_frames`限制
+- **操作类型**: `operation='watermark'`检测隐式水印，`operation='visible_mark'`检测显式标识
 
 ### 🔧 离线/缓存配置建议：
 - **环境变量**: 设置`TRANSFORMERS_OFFLINE=1`、`HF_HUB_OFFLINE=1`强制离线加载
@@ -1200,17 +1270,17 @@ python -u unified_watermark_tool/tests/test_video_watermark_demo.py
 - CUDA 环境下启用 `vae.enable_tiling()` 与 `enable_model_cpu_offload()`；避免与 `device_map` 并用。
 - 5秒@15fps 推荐 `num_frames=75` 与 `320x512` 分辨率；如 OOM，生成器会自适应降参重试。
 
-## 🏷️ 可见标识模块（Visible Marking for Compliance）
+## 🏷️ AIGC显式标识模块（Visible Marking for Compliance）
 
-本模块为已有的多媒体文件添加显式可见标识，满足AI生成内容的监管合规要求。支持对用户上传的图像、音频、视频文件添加标准化的可见标记，确保内容来源可识别。
+本模块为AIGC内容提供显式可见标识功能，是AIGC内容标识系统的重要组成部分。支持对AI生成和用户上传的多媒体内容添加标准化的可见合规标记，满足监管要求并保障用户知情权。
 
 ### 核心特性
-- **多模态支持**：支持图像、音频、视频文件的可见标识添加
-- **文本模式**：支持纯文本内容的标识文案插入
-- **合规标准**：内置标准合规文案，支持自定义标识内容
-- **位置控制**：支持灵活的标识位置和样式配置
-- **浏览器兼容**：自动处理格式转码，确保Web播放兼容性
-- **对比显示**：保留原文件供对比展示
+- **全模态覆盖**：支持文本、图像、音频、视频所有AIGC内容的显式标识
+- **合规导向**：内置标准合规文案（"本内容由人工智能生成/合成"），满足监管要求
+- **灵活配置**：支持标识位置、样式、时长等多维度自定义配置
+- **技术兼容**：自动处理格式转码和浏览器兼容性，确保跨平台展示
+- **效果对比**：保留原文件与标识文件，Web界面提供before/after对比展示
+- **用户友好**：清晰标识AI生成内容，保障用户知情权和选择权
 
 ### 架构实现
 位置：`src/utils/visible_mark.py`

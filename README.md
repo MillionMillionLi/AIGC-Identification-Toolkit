@@ -72,10 +72,8 @@
 ### 构建技术
 
 * [![Python][Python.org]][Python-url]
-* [![PyTorch][PyTorch.org]][PyTorch-url]
-* [![Flask][Flask.palletsprojects.com]][Flask-url]
-* [![Transformers][Transformers-badge]][Transformers-url]
-* [![Diffusers][Diffusers-badge]][Diffusers-url]
+[![PyTorch][PyTorch.org]][PyTorch-url]
+[![Flask][Flask.palletsprojects.com]][Flask-url] [![Transformers][Transformers-badge]][Transformers-url] [![Diffusers][Diffusers-badge]][Diffusers-url]
 
 <p align="right">(<a href="#readme-top">返回顶部</a>)</p>
 
@@ -130,220 +128,122 @@
 
 ## 使用方法
 
-### 快速开始
 
-#### 水印
+
+
+
+
+## API参考
+
+本节提供统一水印工具的完整API参考，包括Python API和REST API接口。
+
+### 统一水印工具API (WatermarkTool)
+
+`WatermarkTool`是推荐的主要入口点，提供统一的接口支持所有模态的水印和显式标识操作。
+
+#### 初始化
 
 ```python
 from src.unified.watermark_tool import WatermarkTool
 
-# 初始化工具
+# 使用默认配置初始化
 tool = WatermarkTool()
 
-# 文本水印
-watermarked_text = tool.embed("Please introduce AI generated content", "my_message", 'text')
-result = tool.extract(watermarked_text, 'text')
-
-# 图像水印
-img = tool.embed("A cat under the sun", "img_watermark", 'image')
-
-# 音频水印
-audio = tool.embed("Hello world", "audio_watermark", 'audio',
-                   output_path="output.wav")
-
-# 视频水印
-video = tool.embed("The sun shines on the sea", "video_watermark", 'video')
+# 使用自定义配置初始化
+tool = WatermarkTool(config_path="path/to/config.yaml")
 ```
 
-#### 显式标识
+#### 核心方法
+
+##### embed() - 嵌入水印或显式标识
 
 ```python
-from src.utils.visible_mark import (
-    add_text_mark_to_text,
-    add_overlay_to_image,
-    add_overlay_to_video_ffmpeg,
-    add_voice_mark_to_audio
-)
-from PIL import Image
+def embed(self,
+          content: Union[str, Path],
+          message: str,
+          modality: str,
+          operation: str = 'watermark',
+          **kwargs) -> Union[str, PIL.Image, torch.Tensor, Path]:
+    """
+    嵌入水印或添加显式标识
 
-# 文本显式标识
-original_text = "这是一个示例文本内容。"
-marked_text = add_text_mark_to_text(
-    original_text,
-    mark="本内容由人工智能生成",
-    position="start"
-)
+    Args:
+        content: 输入内容
+            - 文本模态: 提示文本(AI生成模式)或原始文本(显式标识)
+            - 图像模态: 提示文本(AI生成)或图像文件路径(上传模式)
+            - 音频模态: 提示文本(AI生成)或音频文件路径(上传模式)
+            - 视频模态: 提示文本(AI生成)或视频文件路径(上传模式)
+        message: 要嵌入的水印信息或显式标识文本
+        modality: 模态类型 ('text', 'image', 'audio', 'video')
+        operation: 操作类型 ('watermark' 或 'visible_mark')
+        **kwargs: 模态特定参数
 
-# 图像显式标识
-img = Image.open("input.jpg")
-marked_img = add_overlay_to_image(
-    img,
-    "本内容由人工智能生成",
-    position="bottom_right",
-    font_percent=4.0,
-    font_color="#FFFF00"
-)
-
-# 视频显式标识
-marked_video_path = add_overlay_to_video_ffmpeg(
-    "input.mp4",
-    "output.mp4",
-    "本内容由人工智能生成",
-    position="bottom_right",
-    font_percent=3.0,
-    duration_seconds=3.0
-)
-
-# 音频显式标识（语音标注）
-marked_audio_path = add_voice_mark_to_audio(
-    "input.wav",
-    "output.wav",
-    "本内容由人工智能生成",
-    position="start",
-    voice_preset="v2/zh_speaker_6"
-)
+    Returns:
+        处理后的内容（格式根据模态而定）
+    """
 ```
 
-### 运行网页界面
-
-```bash
-# 启动Flask服务器
-python app.py
-
-# 打开浏览器并访问
-# http://localhost:5000
-```
-
-### 高级配置
-
-编辑`config/`目录中的配置文件：
-
-- `config/default_config.yaml`：所有模态的全局设置
-- `config/text_config.yaml`：文本水印特定设置
-
-#### 配置示例
-
-```yaml
-# 文本水印配置
-text_watermark:
-  algorithm: "credid"                    # CredID算法用于LLM文本水印
-  mode: "lm"                             # LM模式（语言模型，更高质量）
-  credid:
-    watermark_key: "default_key"          # 水印密钥标识符
-    lm_params:
-      delta: 1.5                         # 逻辑修改强度（水印强度）
-      prefix_len: 10                     # 上下文分析的前缀长度
-      message_len: 10                    # 水印消息长度（位）
-    wm_params:
-      encode_ratio: 8                    # 编码比率（每个水印位的令牌数）
-
-# 图像水印配置
-image_watermark:
-  algorithm: "videoseal"                 # VideoSeal算法（默认）
-  resolution: 512                       # AI生成模式的图像分辨率
-  num_inference_steps: 30                # 推理步骤（越高质量越好）
-  guidance_scale: 7.5                    # 引导比例（越高越符合提示）
-  videoseal:
-    replicate: 32                        # 多帧复制以增强检测
-    chunk_size: 16                       # 处理块大小用于效率
-
-# 音频水印配置
-audio_watermark:
-  algorithm: "audioseal"                 # AudioSeal音频水印算法
-  sample_rate: 16000                     # AudioSeal所需采样率（16kHz）
-  message_bits: 16                       # 水印消息长度（位）
-  audioseal:
-    nbits: 16                           # 消息编码位（基于SHA256）
-    alpha: 1.0                          # 水印强度调整
-
-# 视频水印配置
-video_watermark:
-  watermark: "videoseal"                 # VideoSeal水印算法
-  videoseal:
-    lowres_attenuation: true             # 启用低分辨率优化
-    chunk_size: 16                       # 大视频的处理块大小
-```
-
-<p align="right">(<a href="#readme-top">返回顶部</a>)</p>
-
-## 网页演示
-
-![网页界面](pictures/web.png)
-
-工具包包含一个综合的网页界面，具有以下特性：
-
-### 🎨 界面特色
-
-- **双栏布局**：左侧操作面板，右侧结果显示
-- **模式切换**：在"AI生成"和"上传文件"模式之间切换
-- **识别方法选择**：在"水印"和"显式标识"之间选择
-- **实时对比**：原始内容与处理后内容的并排显示
-- **多格式支持**：处理所有主要图像、音频和视频格式
-
-### 🚀 支持的操作
-
-| 模态     | 水印   | 显式标识   | 文件上传支持 |
-| -------- | ------------ | ---------- | ------------ |
-| **文本** | ✅ CredID     | ✅ 文本标注 | ❌ (仅生成)   |
-| **图像** | ✅ VideoSeal  | ✅ 叠加标记 | ✅ 多格式     |
-| **音频** | ✅ AudioSeal  | ✅ 语音标注 | ✅ 多格式     |
-| **视频** | ✅  VideoSeal | ✅ 叠加标记 | ✅ 自动转码   |
-
-<p align="right">(<a href="#readme-top">返回顶部</a>)</p>
-
-## API参考
-
-### 核心API
-
-#### 水印API
+**使用示例：**
 
 ```python
-# 嵌入水印
-result = tool.embed(
-    prompt="内容或提示",                    # 文本内容或生成提示
-    message="watermark_message",          # 要嵌入的水印
-    modality="text|image|audio|video",    # 内容类型
-    **kwargs                              # 模态特定参数
-)
+# 隐式水印（默认operation='watermark'）
+text_wm = tool.embed("Please write a story", "my_message", 'text')
+img_wm = tool.embed("a cat under the sun", "img_msg", 'image')
+audio_wm = tool.embed("Hello world", "audio_msg", 'audio')
+video_wm = tool.embed("阳光洒在海面上", "video_msg", 'video')
 
-# 提取水印
-detection = tool.extract(
-    content,                              # 带水印的内容
-    modality="text|image|audio|video",    # 内容类型
-    **kwargs                              # 检测参数
-)
-```
-
-#### 显式标识API
-
-```python
-from src.utils.visible_mark import *
-
-# 为不同模态添加显式标识
-marked_text = add_text_mark_to_text(text, mark, position)
-marked_image = add_overlay_to_image(image, text, position, font_percent)
-marked_video_path = add_overlay_to_video_ffmpeg(input_path, output_path, text)
-marked_audio_path = add_voice_mark_to_audio(input_path, output_path, mark_text)
-```
-
-### REST API端点
-
-```bash
-# 水印嵌入
-POST /api/watermark/<modality>
+# 上传文件模式
+img_wm = tool.embed("", "file_msg", 'image', image_input="/path/to/image.jpg")
+audio_wm = tool.embed("", "audio_msg", 'audio', audio_input="/path/to/audio.wav")
 
 # 显式标识
-POST /api/visible_mark
-
-# 任务状态检查
-GET /api/status/<task_id>
-
-# 文件服务
-GET /api/files/<task_id>/original
-GET /api/files/<task_id>/watermarked
+marked_text = tool.embed("原始文本", "本内容由AI生成", 'text',
+                        operation='visible_mark', position='start')
+marked_img = tool.embed("/path/to/image.jpg", "AI标识", 'image',
+                       operation='visible_mark', position='bottom_right')
 ```
 
-<p align="right">(<a href="#readme-top">返回顶部</a>)</p>
+##### extract() - 提取水印或检测显式标识
+
+```python
+def extract(self,
+           content: Union[str, PIL.Image, torch.Tensor, Path],
+           modality: str,
+           operation: str = 'watermark',
+           **kwargs) -> Dict[str, Any]:
+    """
+    提取水印或检测显式标识
+
+    Args:
+        content: 待检测的内容
+        modality: 模态类型
+        operation: 操作类型 ('watermark' 或 'visible_mark')
+        **kwargs: 检测参数
+
+    Returns:
+        检测结果字典:
+        {
+            'detected': bool,      # 是否检测到水印/标识
+            'message': str,        # 提取的消息内容
+            'confidence': float,   # 置信度 (0.0-1.0)
+            'metadata': dict       # 额外的元数据信息
+        }
+    """
+```
+
+**使用示例：**
+
+```python
+# 提取隐式水印
+text_result = tool.extract(watermarked_text, 'text')
+img_result = tool.extract(watermarked_image, 'image', replicate=16)
+audio_result = tool.extract(watermarked_audio, 'audio')
+video_result = tool.extract(watermarked_video, 'video')
+
+# 检测显式标识
+mark_result = tool.extract(marked_content, 'text', operation='visible_mark')
+```
+
 
 ## 发展路线
 

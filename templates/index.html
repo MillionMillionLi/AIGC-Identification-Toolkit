@@ -712,9 +712,9 @@
         <header class="header">
             <div class="logo">
                 <div class="logo-icon">W</div>
-                <h1 class="logo-text">多模态水印工具</h1>
+                <h1 class="logo-text">AIGC标识技术支持平台</h1>
             </div>
-            <p class="subtitle">支持文本、图像、音频、视频四种模态的智能水印嵌入与提取</p>
+            <p class="subtitle">支持文本、图像、音频、视频四种模态的标识与水印的嵌入提取</p>
         </header>
 
         <!-- Main Layout - Double Column -->
@@ -776,7 +776,7 @@
                                 <input type="radio" name="operation" value="visible_mark" style="display: none;">
                                 <span class="radio-content">
                                     <span class="radio-icon">🏷️</span>
-                                    <span class="radio-text">显示标识</span>
+                                    <span class="radio-text">显式标识</span>
                                 </span>
                             </label>
                         </div>
@@ -882,11 +882,11 @@
                             <!-- 输入来源：文本或上传（文本允许直接粘贴；其他三类需上传） -->
                             <div class="form-group" id="visible-text-input" style="display: none;">
                                 <label class="form-label" for="visible-textarea">文本内容</label>
-                                <textarea id="visible-textarea" class="form-textarea" placeholder="在此粘贴要添加显示标识的文本..." style="min-height: 120px; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.875rem; line-height: 1.6; width: 100%; box-sizing: border-box;"></textarea>
+                                <textarea id="visible-textarea" class="form-textarea" placeholder="在此粘贴要添加显式标识的文本..." style="min-height: 120px; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.875rem; line-height: 1.6; width: 100%; box-sizing: border-box;"></textarea>
                             </div>
 
                             <div class="form-group" id="visible-upload-input" style="display: block;">
-                                <label class="form-label">上传文件添加显示标识</label>
+                                <label class="form-label">上传文件添加显式标识</label>
                                 <div class="file-upload-area" id="visible-file-upload-area">
                                     <div class="upload-placeholder">
                                         <div class="upload-icon">📁</div>
@@ -1168,7 +1168,7 @@
         let isProcessing = false;
         let uploadedFile = null;
         let embedUploadedFile = null; // 用于embed模式的上传文件
-        let visibleUploadedFile = null; // 用于显示标识模式的上传文件
+        let visibleUploadedFile = null; // 用于显式标识模式的上传文件
         let currentTaskId = null;
 
         // 模态配置
@@ -1290,7 +1290,7 @@
                         updateFileUploadHint(modality);
                         updateEmbedFileUploadHint(modality);
                         updateEmbedInputModeVisibility(modality);
-                        // 如果是显示标识模式，更新对应的选项可见性
+                        // 如果是显式标识模式，更新对应的选项可见性
                         if (currentOperation === 'visible_mark') {
                             updateVisibleMarkOptionsVisibility(modality);
                             // 更新输入控件显示
@@ -1552,7 +1552,7 @@
             document.getElementById('embed-file-input').value = '';
         }
 
-        // 设置显示标识文件上传
+        // 设置显式标识文件上传
         function setupVisibleFileUpload() {
             const visibleFileUploadArea = document.getElementById('visible-file-upload-area');
             const visibleFileInput = document.getElementById('visible-file-input');
@@ -1590,7 +1590,7 @@
             });
         }
 
-        // 处理显示标识文件选择
+        // 处理显式标识文件选择
         function handleVisibleFileSelect(e) {
             const file = e.target.files[0];
             if (file) {
@@ -1598,9 +1598,9 @@
             }
         }
 
-        // 处理显示标识文件
+        // 处理显式标识文件
         function handleVisibleFile(file) {
-            console.log('选择显示标识文件:', file.name);
+            console.log('选择显式标识文件:', file.name);
             visibleUploadedFile = file;
             
             document.getElementById('visible-file-upload-area').style.display = 'none';
@@ -1609,7 +1609,7 @@
             document.getElementById('visible-file-size').textContent = formatFileSize(file.size);
         }
 
-        // 移除显示标识文件
+        // 移除显式标识文件
         function removeVisibleFile() {
             visibleUploadedFile = null;
             document.getElementById('visible-file-upload-area').style.display = 'block';
@@ -1684,7 +1684,7 @@
             }
         }
 
-        // 更新显示标识模态选项可见性
+        // 更新显式标识模态选项可见性
         function updateVisibleMarkOptionsVisibility(modality) {
             document.getElementById('vm-text-opts').style.display = (modality === 'text') ? 'block' : 'none';
             document.getElementById('vm-image-video-opts').style.display = (modality === 'image' || modality === 'video') ? 'block' : 'none';
@@ -1710,7 +1710,7 @@
             if (operation === 'embed') {
                 confirmBtn.innerHTML = '<span id="confirm-icon">✨</span><span id="confirm-text">嵌入水印</span>';
             } else if (operation === 'visible_mark') {
-                confirmBtn.innerHTML = '<span id="confirm-icon">🏷️</span><span id="confirm-text">显示标识</span>';
+                confirmBtn.innerHTML = '<span id="confirm-icon">🏷️</span><span id="confirm-text">显式标识</span>';
             } else {
                 confirmBtn.innerHTML = '<span id="confirm-icon">🔍</span><span id="confirm-text">提取水印</span>';
             }
@@ -1787,7 +1787,7 @@
                     }
                 } else {
                     if (!visibleUploadedFile) {
-                        showAlert('请上传文件添加显示标识', 'error');
+                        showAlert('请上传文件添加显式标识', 'error');
                         return;
                     }
                 }
@@ -1925,9 +1925,9 @@
             return await response.json();
         }
 
-        // 执行显示标识
+        // 执行显式标识
         async function performVisibleMark() {
-            console.log('🚀 开始执行显示标识');
+            console.log('🚀 开始执行显式标识');
             console.log('当前模态:', currentModality);
             
             const formData = new FormData();
@@ -1968,7 +1968,7 @@
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || '显示标识失败');
+                throw new Error(errorData.error || '显式标识失败');
             }
 
             return await response.json();
@@ -2320,9 +2320,9 @@
                     }
                     showResultTemplate('text', 'generate', true);
                 } else if (operation === 'visible_mark') {
-                    // 显示标识操作结果
+                    // 显式标识操作结果
                     if (currentModality === 'text') {
-                        // 文本显示标识结果
+                        // 文本显式标识结果
                         if (result.output_text) {
                             resultText.textContent = result.output_text;
                             resultText.style.display = 'block';
@@ -2331,8 +2331,8 @@
                         }
                         showResultTemplate('text', 'generate', true);
                     } else {
-                        // 非文本模态显示标识结果，使用上传结果模板
-                        resultText.textContent = `显示标识添加成功!\n\n文件已保存，可下载查看结果。`;
+                        // 非文本模态显式标识结果，使用上传结果模板
+                        resultText.textContent = `显式标识添加成功!\n\n文件已保存，可下载查看结果。`;
                         resultText.style.display = 'block';
                         
                         // 显示对应的结果模板 (使用上传模式模板，只显示带标识的结果)

@@ -70,34 +70,36 @@ class WatermarkTool:
     
     # ========== 新的统一接口（推荐使用） ==========
     
-    def embed(self, prompt: str, message: str, modality: str, **kwargs) -> Any:
+    def embed(self, content: str, message: str, modality: str, operation: str = 'watermark', **kwargs) -> Any:
         """
         统一嵌入接口
-        
+
         Args:
-            prompt: 输入提示
-            message: 水印消息  
+            content: 输入内容（提示词或实际内容）
+            message: 水印消息或标识文本
             modality: 模态类型 ('text', 'image', 'audio', 'video')
+            operation: 操作类型 ('watermark', 'visible_mark')，默认为 'watermark'
             **kwargs: 额外参数
-            
+
         Returns:
-            带水印的内容
+            处理后的内容
         """
-        return self.engine.embed(prompt, message, modality, **kwargs)
+        return self.engine.embed(content, message, modality, operation, **kwargs)
     
-    def extract(self, content: Any, modality: str, **kwargs) -> Dict[str, Any]:
+    def extract(self, content: Any, modality: str, operation: str = 'watermark', **kwargs) -> Dict[str, Any]:
         """
         统一提取接口
-        
+
         Args:
             content: 待检测内容
             modality: 模态类型 ('text', 'image', 'audio', 'video')
+            operation: 操作类型 ('watermark', 'visible_mark')，默认为 'watermark'
             **kwargs: 额外参数
-            
+
         Returns:
             Dict[str, Any]: 检测结果
         """
-        return self.engine.extract(content, modality, **kwargs)
+        return self.engine.extract(content, modality, operation, **kwargs)
     
     # ========== 向后兼容的接口 ==========
     
@@ -268,15 +270,54 @@ class WatermarkTool:
         """批量视频水印提取"""
         return [self.engine.extract(video, 'video', **kwargs) for video in video_inputs]
     
+    # ========== 显式标识便捷接口 ==========
+
+    def add_visible_mark(self, content: Any, message: str, modality: str, **kwargs) -> Any:
+        """
+        添加显式标识的便捷方法
+
+        Args:
+            content: 要添加标识的内容
+            message: 标识文本
+            modality: 模态类型
+            **kwargs: 额外参数
+
+        Returns:
+            添加标识后的内容
+        """
+        return self.engine.embed(content, message, modality, operation='visible_mark', **kwargs)
+
+    def detect_visible_mark(self, content: Any, modality: str, **kwargs) -> Dict[str, Any]:
+        """
+        检测显式标识的便捷方法
+
+        Args:
+            content: 待检测内容
+            modality: 模态类型
+            **kwargs: 额外参数
+
+        Returns:
+            Dict[str, Any]: 检测结果
+        """
+        return self.engine.extract(content, modality, operation='visible_mark', **kwargs)
+
     # ========== 通用接口 ==========
-    
+
     def get_supported_algorithms(self) -> Dict[str, list]:
         """获取支持的算法列表"""
         return self.engine.get_default_algorithms()
-    
+
     def get_supported_modalities(self) -> list:
         """获取支持的模态列表"""
         return self.engine.get_supported_modalities()
+
+    def get_supported_operations(self) -> list:
+        """获取支持的操作列表"""
+        return self.engine.get_supported_operations()
+
+    def get_operation_info(self) -> Dict[str, Dict]:
+        """获取操作信息"""
+        return self.engine.get_operation_info()
     
     def set_algorithm(self, modality: str, algorithm: str):
         """设置指定模态的算法"""
