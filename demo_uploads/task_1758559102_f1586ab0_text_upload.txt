@@ -1,4 +1,0 @@
-term frequency weighting (TF-IDF) and stop words.
-The goal is to extract a list of terms that appear most frequently in the document "foo".
-There are two main ways for doing this task:
-1. With an

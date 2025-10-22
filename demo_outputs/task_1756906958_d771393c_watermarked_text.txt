@@ -1,2 +1,0 @@
-
-This is the first of a series of posts on some tests for web and software development. I’ve long been an advocate for testing as part of any developer's workflow, both to help identify bugs before release or during QA (

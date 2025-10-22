@@ -1,2 +1,0 @@
-
-This is a sample of the text that we’ll display in our dialog boxes (this one says ‘Hello World!).” It is a standard HTML document. The text that you see may vary from the example because it could depend on what

@@ -1,2 +1,0 @@
-.
-The project's goal is to enable researchers worldwide with a full cycle of technologies for creating, processing, detecting, verifying, and sharing information about identities or properties within images using an open software stack that integrates
