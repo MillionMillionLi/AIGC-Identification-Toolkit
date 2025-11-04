@@ -1,0 +1,6 @@
+[submodule "benchmarks/VINE"]
+	path = benchmarks/VINE
+	url = https://github.com/Shilin-LU/VINE.git
+[submodule "benchmarks/AudioMarkBench"]
+	path = benchmarks/AudioMarkBench
+	url = https://github.com/mileskuo42/AudioMarkBench.git
