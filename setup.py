@@ -7,11 +7,11 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="unified-watermark-tool",
+    name="AIGC-Identification-Toolkit",
     version="0.1.0",
     author="码农团队",
     author_email="",
-    description="统一多模态水印工具 - 支持文本和图像水印",
+    description="AIGC内容标识开发套件 - 支持文本、图像、音频和视频的水印和显式标识",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="",
@@ -34,9 +34,14 @@ setup(
     extras_require={
         "dev": [
             "pytest>=6.0",
-            "black>=22.0",
-            "flake8>=4.0",
-            "isort>=5.0",
+            "pytest-cov>=3.0",
+        ],
+        "audio": [
+            "bark @ git+https://github.com/suno-ai/bark.git",
+        ],
+        "jupyter": [
+            "jupyter>=1.0",
+            "notebook>=6.0",
         ],
     },
     entry_points={

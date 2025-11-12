@@ -248,7 +248,7 @@ class ModelManager:
             def _resolve_local_model_path(model_name_str: str) -> Path:
                 # 1) 直接是本地目录
                 p = Path(model_name_str)
-                if p.exists():
+                if p.exists() and (p / 'model_index.json').exists():
                     return p
                 # 2) 在候选hub缓存中查找 models--org--repo 结构
                 if '/' in model_name_str:
@@ -256,7 +256,18 @@ class ModelManager:
                     for base in _candidate_hub_dirs():
                         hub_dir = base / hub_subdir
                         if hub_dir.exists():
-                            # 关键：与PRC一致，传入 hub_dir（models--org--repo），让from_pretrained离线解析refs
+                            # 检查snapshots目录，找到实际的模型文件
+                            snapshots_dir = hub_dir / 'snapshots'
+                            if snapshots_dir.exists():
+                                # 获取最新的snapshot
+                                snapshot_dirs = [d for d in snapshots_dir.iterdir() if d.is_dir()]
+                                if snapshot_dirs:
+                                    # 使用第一个snapshot（通常只有一个）
+                                    actual_model_path = snapshot_dirs[0]
+                                    if (actual_model_path / 'model_index.json').exists():
+                                        logger.info(f"找到模型路径: {actual_model_path}")
+                                        return actual_model_path
+                            # 如果没有找到snapshot，尝试直接返回hub_dir让diffusers自己解析
                             return hub_dir
                 # 3) 回退原始字符串
                 return Path(model_name_str)

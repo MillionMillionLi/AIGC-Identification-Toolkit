@@ -18,12 +18,12 @@ if str(videoseal_path) not in sys.path:
 
 try:
     import videoseal
-    from videoseal.models import Videoseal
-    from videoseal.evals.metrics import bit_accuracy
+    # 注意：不再从videoseal.models导入Videoseal类
+    # 而是使用videoseal.load()函数来加载模型
     VIDEOSEAL_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     VIDEOSEAL_AVAILABLE = False
-    logging.warning("VideoSeal not available. Please check the videoseal directory.")
+    logging.warning(f"VideoSeal not available: {e}. Please check the videoseal directory.")
 
 
 class VideoSealWrapper:

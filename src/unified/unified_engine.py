@@ -1,6 +1,5 @@
 """
 多模态水印工具统一引擎
-遵循KISS原则，提供简洁统一的多模态水印接口
 """
 
 import torch
@@ -10,14 +9,14 @@ from PIL import Image
 
 try:
     # 相对导入（当作为包运行时）
-    from ..text_watermark.credid_watermark import CredIDWatermark
+    from ..text_watermark.text_watermark import TextWatermark
     from ..image_watermark.image_watermark import ImageWatermark
     from ..audio_watermark.audio_watermark import AudioWatermark
     from ..video_watermark.video_watermark import VideoWatermark
 except ImportError:
     try:
         # 绝对导入（当 src 在路径中时）
-        from text_watermark.credid_watermark import CredIDWatermark
+        from text_watermark.text_watermark import TextWatermark
         from image_watermark.image_watermark import ImageWatermark
         from audio_watermark.audio_watermark import AudioWatermark
         from video_watermark.video_watermark import VideoWatermark
@@ -181,14 +180,17 @@ class UnifiedWatermarkEngine:
         # 若全部失败，记录警告
         self.logger.warning(f"离线加载文本模型失败，稍后在调用时仍将报错。最后错误: {last_error}")
 
-    def _get_text_watermark(self) -> CredIDWatermark:
+    def _get_text_watermark(self) -> TextWatermark:
         """获取文本水印处理器（懒加载）"""
         if self._text_watermark is None:
-            # 读取配置并初始化处理器
-            config = self._load_text_config()
-            self._text_watermark = CredIDWatermark(config)
-            # 同步初始化模型与分词器（离线优先）
-            self._init_text_model_tokenizer()
+            # 使用统一的TextWatermark门面，支持多算法
+            self._text_watermark = TextWatermark(self.config_path)
+
+            # 如果使用CredID算法，需要初始化模型与分词器
+            if self._text_watermark.algorithm == 'credid':
+                self._init_text_model_tokenizer()
+
+            self.logger.info(f"文本水印处理器初始化完成，算法: {self._text_watermark.algorithm}")
         return self._text_watermark
     
     def _get_image_watermark(self) -> ImageWatermark:
@@ -259,23 +261,52 @@ class UnifiedWatermarkEngine:
         """
         try:
             if modality == 'text':
-                # 文本水印：需要模型和分词器
+                # 文本水印：根据算法类型决定处理方式
                 watermark = self._get_text_watermark()
 
-                # CredID需要模型和分词器参数
-                model = kwargs.get('model') or self._text_model
-                tokenizer = kwargs.get('tokenizer') or self._text_tokenizer
+                # 根据算法类型调用不同的接口
+                if watermark.algorithm == 'credid':
+                    # CredID: 需要模型和分词器，content是prompt
+                    model = kwargs.get('model') or self._text_model
+                    tokenizer = kwargs.get('tokenizer') or self._text_tokenizer
 
-                if model is None or tokenizer is None:
-                    raise ValueError("文本水印需要提供model和tokenizer参数")
+                    if model is None or tokenizer is None:
+                        raise ValueError("CredID算法需要提供model和tokenizer参数")
 
-                # 调用正确的embed方法
-                result = watermark.embed(model, tokenizer, content, message)
+                    result = watermark.embed_watermark(content, message, model=model, tokenizer=tokenizer)
 
-                if result.get('success'):
-                    return result['watermarked_text']
+                    if result.get('success'):
+                        return result['watermarked_text']
+                    else:
+                        raise RuntimeError(f"CredID水印嵌入失败: {result.get('error', 'Unknown error')}")
+
+                elif watermark.algorithm == 'postmark':
+                    # PostMark: 区分AI生成模式和文件上传模式
+                    if 'text_input' in kwargs:
+                        # 文件上传模式：content是已生成的文本，后处理嵌入
+                        result = watermark.embed_watermark(content, message, **kwargs)
+                    else:
+                        # AI生成模式：content是prompt，先生成再嵌入水印
+                        result = watermark.generate_with_watermark(
+                            prompt=content,
+                            message=message,
+                            **kwargs
+                        )
+                        # generate_with_watermark返回字符串，需包装为标准格式
+                        if isinstance(result, str):
+                            return result
+                        elif isinstance(result, dict) and result.get('success'):
+                            return result['watermarked_text']
+                        else:
+                            raise RuntimeError(f"PostMark生成失败: {result.get('error', 'Unknown error') if isinstance(result, dict) else 'Unknown'}")
+
+                    if result.get('success'):
+                        return result['watermarked_text']
+                    else:
+                        raise RuntimeError(f"PostMark水印嵌入失败: {result.get('error', 'Unknown error')}")
+
                 else:
-                    raise RuntimeError(f"文本水印嵌入失败: {result.get('error', 'Unknown error')}")
+                    raise ValueError(f"不支持的文本水印算法: {watermark.algorithm}")
 
 
             elif modality == 'image':
@@ -538,24 +569,36 @@ class UnifiedWatermarkEngine:
             if modality == 'text':
                 watermark = self._get_text_watermark()
 
-                # CredID需要模型和分词器参数
-                model = kwargs.get('model') or self._text_model
-                tokenizer = kwargs.get('tokenizer') or self._text_tokenizer
+                # 根据算法类型调用不同的提取方法
+                if watermark.algorithm == 'credid':
+                    # CredID需要模型和分词器参数
+                    model = kwargs.get('model') or self._text_model
+                    tokenizer = kwargs.get('tokenizer') or self._text_tokenizer
 
-                if model is None or tokenizer is None:
-                    raise ValueError("文本水印提取需要提供model和tokenizer参数")
+                    if model is None or tokenizer is None:
+                        raise ValueError("CredID算法需要提供model和tokenizer参数")
 
-                # 调用正确的extract方法
-                result = watermark.extract(content, model, tokenizer,
-                                         candidates_messages=kwargs.get('candidates_messages'))
+                    result = watermark.extract_watermark(
+                        content,
+                        model=model,
+                        tokenizer=tokenizer,
+                        candidates_messages=kwargs.get('candidates_messages'),
+                        **kwargs
+                    )
 
-                # 统一返回格式
-                return {
-                    'detected': result.get('success', False),
-                    'message': result.get('extracted_message', ''),
-                    'confidence': result.get('confidence', 0.0),
-                    'metadata': result.get('metadata', {})
-                }
+                elif watermark.algorithm == 'postmark':
+                    # PostMark提取
+                    result = watermark.extract_watermark(
+                        content,
+                        candidates_messages=kwargs.get('candidates_messages'),
+                        **kwargs
+                    )
+
+                else:
+                    raise ValueError(f"不支持的文本水印算法: {watermark.algorithm}")
+
+                # TextWatermark已返回统一格式
+                return result
 
             elif modality == 'image':
                 watermark = self._get_image_watermark()
@@ -674,7 +717,7 @@ class UnifiedWatermarkEngine:
     def get_default_algorithms(self) -> Dict[str, str]:
         """获取各模态的默认算法"""
         return {
-            'text': 'credid',
+            'text': 'postmark',  # 默认使用PostMark（后处理水印，支持黑盒LLM）
             'image': 'videoseal',  # 默认使用videoseal
             'audio': 'audioseal',
             'video': 'hunyuan+videoseal'

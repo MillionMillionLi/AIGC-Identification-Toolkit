@@ -80,20 +80,22 @@ audio_watermark:
 
 # 视频水印配置
 video_watermark:
-  generator: "hunyuan"  # 视频生成器：HunyuanVideo
+  generator: "wan"  # 视频生成器：Wan2.1-T2V-1.3B
   watermark: "videoseal"  # 水印算法：VideoSeal
   cache_dir: "/fs-computility/wangxuhong/limeilin/.cache/huggingface/hub"
   device: null  # 自动选择设备
-  
-  # HunyuanVideo生成参数（使用测试验证的最优参数）
-  hunyuan:
-    num_frames: 25  # 帧数（建议4*k+1）
-    # 重要：高度与宽度需能被16整除；使用更小且兼容的默认分辨率以减少显存与避免报错
-    height: 320  # 16的倍数（原720）
-    width: 512   # 16的倍数（原1280）
-    num_inference_steps: 15  # 推理步数
-    guidance_scale: 6.0  # 引导强度
-    
+
+  # Wan2.1视频生成参数（基于官方推荐的最优参数）
+  wan:
+    model_name: "Wan-AI/Wan2.1-T2V-1.3B-Diffusers"  # Wan2.1模型仓库
+    num_frames: 81  # 帧数（5秒@15fps，Wan2.1推荐）
+    # 重要：高度与宽度需能被16整除
+    height: 480  # Wan2.1推荐480p（16的倍数）
+    width: 832   # Wan2.1推荐832（16:9比例，16的倍数）
+    num_inference_steps: 50  # 推理步数（Wan2.1推荐）
+    guidance_scale: 5.0  # 引导强度（Wan2.1推荐）
+    vram_requirement: "8GB"  # 显存需求
+
   # VideoSeal水印参数
   videoseal:
     lowres_attenuation: true  # 低分辨率衰减

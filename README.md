@@ -24,35 +24,8 @@
 
 </div>
 
-<!-- 目录 -->
 
-<details>
-  <summary>目录</summary>
-  <ol>
-    <li>
-      <a href="#关于项目">关于项目</a>
-      <ul>
-        <li><a href="#构建技术">构建技术</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#开始使用">开始使用</a>
-      <ul>
-        <li><a href="#前置要求">前置要求</a></li>
-        <li><a href="#安装">安装</a></li>
-      </ul>
-    </li>
-    <li><a href="#使用方法">使用方法</a></li>
-    <li><a href="#网页演示">网页演示</a></li>
-    <li><a href="#api参考">API参考</a></li>
-    <li><a href="#性能">性能</a></li>
-    <li><a href="#发展路线">发展路线</a></li>
-    <li><a href="#贡献">贡献</a></li>
-    <li><a href="#许可证">许可证</a></li>
-    <li><a href="#联系">联系</a></li>
-    <li><a href="#致谢">致谢</a></li>
-  </ol>
-</details>
+
 
 
 ## 关于项目
@@ -67,7 +40,6 @@
 - **全面覆盖**：支持GB 45438-2025标准要求的所有标识方法
 - **多模态支持**：统一处理文本、图像、音频和视频内容
 - **双模式操作**：既支持AI内容生成，也支持现有文件处理
-- **生产就绪**：配备完整的网页界面、批量处理和性能优化
 
 ### 构建技术
 
@@ -79,19 +51,14 @@
 
 ## 开始使用
 
-### 前置要求
-
-- Python 3.8或更高版本
-- 支持CUDA的GPU（推荐用于最佳性能）
-- FFmpeg（视频处理必需）
 
 ### 安装
 
 1. 克隆仓库
 
    ```bash
-   git clone https://github.com/your-repo-link/unified_watermark_tool.git
-   cd unified_watermark_tool
+   git clone https://github.com/your-repo-link/AIGC-Identification-Toolkit.git
+   cd AIGC-Identification-Toolkit
    ```
 
 2. 安装核心依赖
@@ -100,44 +67,47 @@
    pip install -r requirements.txt
    ```
 
-3. 安装模态特定依赖（可选）
+3. 安装系统依赖
+
+  
 
    ```bash
-   # 文本水印
-   pip install -r src/text_watermark/credid/watermarking/MPAC/requirements.txt
-   
-   # 图像水印（PRC后端）
-   pip install -r src/image_watermark/PRC-Watermark/requirements.txt
-   
-   # 音频水印
-   pip install torch torchaudio julius soundfile librosa scipy matplotlib
-   
-   # 高级音频功能（Bark TTS）
+   sudo apt install ffmpeg
+   ```
+
+4. （可选）下载其他 AI 生成模型
+
+   仅当需要使用 AI 生成内容并添加水印功能时才需要此步骤。如果只处理已有文件（上传模式添加水印），可跳过此步骤。
+
+   ```bash
+   # 图像生成 + 水印（Stable Diffusion 2.1）
+   python scripts/download_sd_model.py
+
+   # 视频生成 + 水印（Wan2.1）
+   python scripts/download_wan_model.py
+
+   # 文本生成 + 水印（PostMark + Mistral）
+   python scripts/download_postmark_deps.py
+
+   # 音频生成 + 水印（Bark）
+   python scripts/download_bark_model.py
    pip install git+https://github.com/suno-ai/bark.git
    ```
 
-4. 配置环境（离线模式可选）
+
+6. 配置环境
+
 
    ```bash
    export TRANSFORMERS_OFFLINE=1
    export HF_HUB_OFFLINE=1
-   export HF_ENDPOINT=https://hf-mirror.com  # 中国用户
+   export HF_ENDPOINT=https://hf-mirror.com
    ```
 
 <p align="right">(<a href="#readme-top">返回顶部</a>)</p>
 
 ## 使用方法
 
-
-
-
-
-
-## API参考
-
-本节提供统一水印工具的完整API参考，包括Python API和REST API接口。
-
-### 统一水印工具API (WatermarkTool)
 
 `WatermarkTool`是推荐的主要入口点，提供统一的接口支持所有模态的水印和显式标识操作。
 
@@ -169,7 +139,7 @@ def embed(self,
 
     Args:
         content: 输入内容
-            - 文本模态: 提示文本(AI生成模式)或原始文本(显式标识)
+            - 文本模态: 提示文本(AI生成)或文本文件路径(上传模式)
             - 图像模态: 提示文本(AI生成)或图像文件路径(上传模式)
             - 音频模态: 提示文本(AI生成)或音频文件路径(上传模式)
             - 视频模态: 提示文本(AI生成)或视频文件路径(上传模式)
@@ -187,18 +157,14 @@ def embed(self,
 
 ```python
 # 隐式水印（默认operation='watermark'）
-text_wm = tool.embed("Please write a story", "my_message", 'text')
 img_wm = tool.embed("a cat under the sun", "img_msg", 'image')
-audio_wm = tool.embed("Hello world", "audio_msg", 'audio')
-video_wm = tool.embed("阳光洒在海面上", "video_msg", 'video')
+
 
 # 上传文件模式
 img_wm = tool.embed("", "file_msg", 'image', image_input="/path/to/image.jpg")
-audio_wm = tool.embed("", "audio_msg", 'audio', audio_input="/path/to/audio.wav")
+
 
 # 显式标识
-marked_text = tool.embed("原始文本", "本内容由AI生成", 'text',
-                        operation='visible_mark', position='start')
 marked_img = tool.embed("/path/to/image.jpg", "AI标识", 'image',
                        operation='visible_mark', position='bottom_right')
 ```
@@ -235,62 +201,89 @@ def extract(self,
 
 ```python
 # 提取隐式水印
-text_result = tool.extract(watermarked_text, 'text')
-img_result = tool.extract(watermarked_image, 'image', replicate=16)
-audio_result = tool.extract(watermarked_audio, 'audio')
-video_result = tool.extract(watermarked_video, 'video')
+img_result = tool.extract(watermarked_image, 'image')
+
 
 # 检测显式标识
 mark_result = tool.extract(marked_content, 'text', operation='visible_mark')
 ```
 
+##  Benchmarks
 
-## 发展路线
+评估各模态水印算法的性能表现，提供标准化的测试数据集、攻击方式和评估指标，帮助用户选择最适合应用场景的算法。
 
-- [x] **水印实现**
-  - [x] CredID文本水印
-  - [x] VideoSeal图像/视频水印
-  - [x] AudioSeal音频水印
-  - [x] PRC-Watermark替代后端
+### 当前状态
 
-- [x] **显式标识实现**
-  - [x] 文本内容标注
-  - [x] 图像叠加标记
-  - [x] 视频叠加标记（FFmpeg）
-  - [x] 音频语音标注（Bark TTS）
+| 模态 | 状态 | 数据集 | 测试算法 | 说明 |
+|------|------|--------|---------|------|
+| **图像** |  完成 | W-Bench DISTORTION_1K | VideoSeal | 5种失真攻击 × 5个强度 |
+| **文本** |  规划中 | TBD |  PostMark | 文本水印鲁棒性测试 |
+| **音频** |  规划中 | AudioMarkBench | AudioSeal | 集成音频评估框架 |
+| **视频** |  规划中 | TBD | VideoSeal | 视频水印评估 |
 
-- [x] **网页界面**
-  - [x] 双模式支持（AI生成+文件上传）
-  - [x] 识别方法选择（不可见/可见）
-  - [x] 实时对比显示
-  - [x] 响应式设计
-  - [x] 浏览器兼容的媒体转码
+---
 
-- [x] **合规与标准**
-  - [x] GB 45438-2025合规
-  - [x] 标准标记文本模板
-  - [x] 可配置的定位和样式
-  - [x] 多模态统一方法
+### Image-Bench
 
-- [ ] **未来增强**
-  - [ ] 其他水印算法
-  - [ ] 移动应用界面
-  - [ ] 云部署选项
-  - [ ] 高级分析仪表板
-  - [ ] 界面多语言支持
+评估图像水印算法对传统失真攻击（亮度、对比度、模糊、噪声、JPEG压缩）的鲁棒性。
 
-查看[开放问题](https://github.com/your-repo-link/issues)获取完整的功能提议和已知问题列表。
+**核心特性**:
+-  **数据集**: W-Bench DISTORTION_1K（1000张图像）
+
+-  **评估指标**: PSNR, SSIM, LPIPS, 检测率, 置信度
+
+**快速使用**:
+```bash
+# 快速测试（10张图像）
+python scripts/image_benchmark.py --max-images 10
+
+# 完整评估（1000张图像）
+python scripts/image_benchmark.py
+```
+
+**详细文档**: [benchmarks/Image-Bench/README.md](benchmarks/Image-Bench/README.md)
+
+---
+
+### Text-Bench（规划中）
+
+
+
+### Audio-Bench（规划中）
+
+
+
+### Video-Bench（规划中）
+
+
 
 <p align="right">(<a href="#readme-top">返回顶部</a>)</p>
 
+
 ## 致谢
 
+本项目基于以下优秀的开源工作构建：
+
+### 水印算法
+
 * [Meta AudioSeal](https://github.com/facebookresearch/audioseal) - 音频水印算法
-* [VideoSeal](https://github.com/facebookresearch/videoseal) - 视频水印技术
-* [Bark TTS](https://github.com/suno-ai/bark) - 文本转语音合成
-* [HunyuanVideo](https://huggingface.co/hunyuanvideo-community/HunyuanVideo) - 文本转视频生成
-* [Hugging Face](https://huggingface.co) - 模型托管和transformers库
-* [PyTorch](https://pytorch.org) - 深度学习框架
+* [VideoSeal](https://github.com/facebookresearch/videoseal) - 视频/图像水印技术
+* [PostMark](https://github.com/your-postmark-repo) - 文本后处理水印算法
+* [CredID](https://github.com/your-credid-repo) - 多方文本水印框架
+* [PRC-Watermark](https://github.com/rmin2000/PRC-Watermark) - 图像水印算法
+
+### AI 生成模型
+
+* [Stable Diffusion](https://github.com/Stability-AI/stablediffusion) - 文本生成图像模型
+* [Wan2.1](https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B-Diffusers) - 文本生成视频模型
+* [Bark](https://github.com/suno-ai/bark) - 文本转语音合成模型
+
+### 评估与基准测试
+
+* [VINE](https://github.com/Shilin-LU/VINE) - W-Bench 数据集和图像失真攻击实现
+* [AudioMarkBench](https://github.com/mileskuo42/AudioMarkBench) - 音频水印评估框架
+
+
 
 <p align="right">(<a href="#readme-top">返回顶部</a>)</p>
 

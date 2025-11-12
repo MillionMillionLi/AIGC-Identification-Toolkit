@@ -1,7 +1,8 @@
 """
-HunyuanVideo模型下载和缓存管理器
+视频生成模型下载和缓存管理器
 自动处理模型的下载、缓存和加载
 支持HuggingFace镜像站点
+支持的模型: HunyuanVideo, Wan2.1
 """
 
 import os
@@ -18,18 +19,18 @@ except ImportError:
 
 
 class ModelManager:
-    """HunyuanVideo模型管理器"""
-    
+    """视频生成模型管理器（支持HunyuanVideo和Wan2.1）"""
+
     def __init__(self, cache_dir: str = "/fs-computility/wangxuhong/limeilin/.cache/huggingface/hub"):
         """
         初始化模型管理器
-        
+
         Args:
             cache_dir: HuggingFace模型缓存目录
         """
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # HunyuanVideo模型配置（支持多个仓库源）
         self.hunyuan_repos = [
             "hunyuanvideo-community/HunyuanVideo",  # 社区diffusers兼容版本
@@ -37,10 +38,14 @@ class ModelManager:
         ]
         self.hunyuan_repo = self.hunyuan_repos[0]  # 默认使用社区版本
         self.hunyuan_model_dir = self.cache_dir / "models--hunyuanvideo-community--HunyuanVideo"
-        
+
+        # Wan2.1模型配置
+        self.wan_repo = "Wan-AI/Wan2.1-T2V-1.3B-Diffusers"
+        self.wan_model_dir = self.cache_dir / "models--Wan-AI--Wan2.1-T2V-1.3B-Diffusers"
+
         # 设置日志
         self.logger = logging.getLogger(__name__)
-        
+
         # 设置镜像站点环境变量（如果未设置）
         if not os.environ.get('HF_ENDPOINT'):
             os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
@@ -56,7 +61,6 @@ class ModelManager:
             self.cache_dir / "hub" / "models--tencent--HunyuanVideo",
             self.cache_dir / "hub" / "models--hunyuanvideo-community--HunyuanVideo"
         ]
-        
         for path in possible_paths:
             if path.exists() and any(path.iterdir()):
                 self.logger.info(f"发现本地HunyuanVideo模型: {path}")
@@ -184,12 +188,148 @@ class ModelManager:
         
         return info
     
+    def _check_wan_model_exists(self) -> bool:
+        """检查本地是否存在Wan2.1模型"""
+        # 检查多个可能的路径格式
+        possible_paths = [
+            self.cache_dir / "models--Wan-AI--Wan2.1-T2V-1.3B-Diffusers",
+            self.cache_dir / "Wan-AI--Wan2.1-T2V-1.3B-Diffusers",
+            self.cache_dir / "hub" / "models--Wan-AI--Wan2.1-T2V-1.3B-Diffusers"
+        ]
+        for path in possible_paths:
+            if path.exists() and any(path.iterdir()):
+                self.logger.info(f"发现本地Wan2.1模型: {path}")
+                # 更新实际路径
+                self.wan_model_dir = path
+                return True
+
+        return False
+
+    def _find_actual_model_path_wan(self) -> Optional[Path]:
+        """查找实际的Wan2.1模型文件路径"""
+        if not self.wan_model_dir.exists():
+            return None
+
+        # 查找模型文件（递归搜索）
+        for root, dirs, files in os.walk(self.wan_model_dir):
+            # 查找关键文件（如config.json, model_index.json等）
+            key_files = ['config.json', 'model_index.json', 'scheduler', 'vae']
+            if any(f in files or f in dirs for f in key_files):
+                return Path(root)
+
+        # 如果没有找到关键文件，返回根目录
+        if any(self.wan_model_dir.iterdir()):
+            return self.wan_model_dir
+
+        return None
+
+    def ensure_wan_model(self, allow_download: bool = False) -> str:
+        """
+        确保Wan2.1模型可用，如果不存在则抛出错误
+
+        Args:
+            allow_download: 是否允许下载模型（默认False，仅使用本地模型）
+
+        Returns:
+            str: 本地模型路径
+
+        Raises:
+            RuntimeError: 模型不存在且不允许下载，或下载失败
+        """
+        # 检查本地模型
+        if self._check_wan_model_exists():
+            actual_path = self._find_actual_model_path_wan()
+            if actual_path:
+                self.logger.info(f"使用本地Wan2.1模型: {actual_path}")
+                return str(actual_path)
+
+        # 模型不存在
+        if not allow_download:
+            raise RuntimeError(
+                f"Wan2.1模型不存在于: {self.cache_dir}\n"
+                f"预期路径: {self.wan_model_dir}\n"
+                "请手动下载模型到该目录，或从HuggingFace下载:\n"
+                f"  huggingface-cli download {self.wan_repo} --local-dir {self.wan_model_dir}"
+            )
+
+        # 需要下载模型
+        if not HF_HUB_AVAILABLE:
+            raise RuntimeError(
+                "huggingface_hub not available. Please install with: pip install huggingface_hub"
+            )
+
+        self.logger.info(f"开始从镜像站点下载Wan2.1模型到: {self.cache_dir}")
+        self.logger.info(f"使用HF_ENDPOINT: {os.environ.get('HF_ENDPOINT', 'default')}")
+
+        try:
+            self.logger.info(f"下载仓库: {self.wan_repo}")
+            downloaded_path = snapshot_download(
+                repo_id=self.wan_repo,
+                cache_dir=str(self.cache_dir),
+                resume_download=True,  # 支持断点续传
+                local_files_only=False,
+            )
+
+            self.logger.info(f"Wan2.1模型下载完成: {downloaded_path}")
+            return downloaded_path
+
+        except Exception as e:
+            self.logger.error(f"从 {self.wan_repo} 下载失败: {e}")
+            raise RuntimeError(f"Wan2.1模型下载失败: {e}")
+
+    def get_wan_model_path(self) -> str:
+        """
+        获取Wan2.1模型路径（不触发下载）
+
+        Returns:
+            str: 模型路径，如果不存在返回空字符串
+        """
+        if self._check_wan_model_exists():
+            actual_path = self._find_actual_model_path_wan()
+            if actual_path:
+                return str(actual_path)
+        return ""
+
+    def get_wan_model_info(self) -> dict:
+        """
+        获取Wan2.1模型信息
+
+        Returns:
+            dict: 包含模型信息的字典
+        """
+        model_path = self.get_wan_model_path()
+
+        info = {
+            "repo_id": self.wan_repo,
+            "cache_dir": str(self.cache_dir),
+            "local_path": model_path,
+            "exists": bool(model_path),
+            "model_size": "1.3B parameters",
+            "vram_requirement": "~8GB",
+            "huggingface_hub_available": HF_HUB_AVAILABLE
+        }
+
+        # 如果模型存在，获取更多信息
+        if model_path:
+            model_path_obj = Path(model_path)
+            info.update({
+                "size_mb": sum(f.stat().st_size for f in model_path_obj.rglob('*') if f.is_file()) / (1024*1024),
+                "num_files": len([f for f in model_path_obj.rglob('*') if f.is_file()])
+            })
+
+        return info
+
     def clear_cache(self):
-        """清理模型缓存"""
+        """清理模型缓存（HunyuanVideo和Wan2.1）"""
         if self.hunyuan_model_dir.exists():
             import shutil
             shutil.rmtree(self.hunyuan_model_dir)
-            self.logger.info(f"已清理模型缓存: {self.hunyuan_model_dir}")
+            self.logger.info(f"已清理HunyuanVideo模型缓存: {self.hunyuan_model_dir}")
+
+        if self.wan_model_dir.exists():
+            import shutil
+            shutil.rmtree(self.wan_model_dir)
+            self.logger.info(f"已清理Wan2.1模型缓存: {self.wan_model_dir}")
 
 
 # 方便的工具函数

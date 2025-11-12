@@ -11,6 +11,20 @@ import warnings
 from typing import Optional, Dict, Any, Union
 from pathlib import Path
 
+# ===== PyTorch 2.6兼容性补丁 =====
+# 修复Bark模型加载的torch.load兼容性问题
+# PyTorch 2.6默认weights_only=True，但Bark旧模型需要weights_only=False
+_original_torch_load = torch.load
+
+def _patched_torch_load(f, *args, **kwargs):
+    """torch.load兼容性补丁，用于加载Bark旧模型"""
+    if 'weights_only' not in kwargs:
+        kwargs['weights_only'] = False
+    return _original_torch_load(f, *args, **kwargs)
+
+torch.load = _patched_torch_load
+# ===== 补丁结束 =====
+
 # 尝试导入Bark相关依赖
 HAS_BARK = False
 set_seed = None  # 初始化为None
@@ -221,32 +235,32 @@ class BarkGenerator:
         """确保Bark模型已加载"""
         if not self._models_loaded:
             self.logger.info("预加载Bark模型...")
-            
+
             # 设置缓存目录
             cache_dir, original_cache_home, original_home = self._setup_bark_cache_dir()
-            
+
             try:
                 # 设置设备
                 if self.use_gpu:
                     os.environ['BARK_FORCE_CPU'] = 'False'
                 else:
                     os.environ['BARK_FORCE_CPU'] = 'True'
-                
+
                 # 检查本地模型是否存在
                 local_models_exist = self._check_local_models_exist(cache_dir)
-                
+
                 if local_models_exist:
                     self.logger.info("使用本地缓存的Bark模型")
                 else:
                     self.logger.info("本地模型不完整，将下载到指定目录")
                     self.logger.warning(f"模型将下载到: {cache_dir}")
                     self.logger.warning("首次下载可能需要较长时间和大量磁盘空间(~5GB)")
-                
+
                 # 预加载模型（会自动从缓存加载或下载）
                 preload_models()
                 self._models_loaded = True
                 self.logger.info("Bark模型预加载完成")
-                
+
             except Exception as e:
                 self.logger.error(f"Bark模型加载失败: {e}")
                 # 检查是否是磁盘空间问题

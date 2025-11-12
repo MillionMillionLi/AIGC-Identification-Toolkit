@@ -173,7 +173,10 @@ def setup_model_from_model_card(model_card: Path | str) -> Videoseal:
     Returns:
         Videoseal: Loaded model.
     """
-    cards_dir = Path("videoseal/cards")
+    # 使用相对于当前文件的路径定位cards目录
+    current_file = Path(__file__).resolve()  # cfg.py的绝对路径
+    videoseal_root = current_file.parent.parent  # videoseal包的根目录
+    cards_dir = videoseal_root / "cards"
     if model_card == 'videoseal':
         model_card = DEFAULT_CARD
 

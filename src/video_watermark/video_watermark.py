@@ -1,6 +1,6 @@
 """
 统一视频水印接口
-整合HunyuanVideo文生视频和VideoSeal水印技术
+整合Wan2.1文生视频和VideoSeal水印技术
 """
 
 import os
@@ -10,7 +10,7 @@ from typing import Optional, Dict, Any, Union
 from pathlib import Path
 
 from .model_manager import ModelManager
-from .hunyuan_video_generator import HunyuanVideoGenerator
+from .wan_video_generator import WanVideoGenerator
 from .videoseal_wrapper import VideoSealWrapper
 from .utils import VideoIOUtils, PerformanceTimer, FileUtils, MemoryMonitor, VideoTranscoder
 
@@ -110,11 +110,11 @@ class VideoWatermark:
             self.model_manager = ModelManager(self.cache_dir)
         return self.model_manager
     
-    def _ensure_video_generator(self) -> HunyuanVideoGenerator:
-        """确保视频生成器已初始化"""
+    def _ensure_video_generator(self) -> WanVideoGenerator:
+        """确保视频生成器已初始化（使用Wan2.1模型）"""
         if self.video_generator is None:
             model_manager = self._ensure_model_manager()
-            self.video_generator = HunyuanVideoGenerator(model_manager, self.device)
+            self.video_generator = WanVideoGenerator(model_manager, self.device)
         return self.video_generator
     
     def _ensure_watermark_wrapper(self) -> VideoSealWrapper:
@@ -128,14 +128,14 @@ class VideoWatermark:
         prompt: str,
         message: str,
         output_path: Optional[str] = None,
-        # HunyuanVideo参数
+        # Wan2.1视频生成参数
         negative_prompt: Optional[str] = None,
-        num_frames: int = 49,
+        num_frames: int = 81,  # Wan2.1推荐：81帧（5秒@15fps）
         # 使用16的倍数作为默认分辨率，避免后续VideoSeal对齐报错
-        height: int = 320,
-        width: int = 512,
-        num_inference_steps: int = 30,
-        guidance_scale: float = 6.0,
+        height: int = 480,  # Wan2.1推荐：480p
+        width: int = 832,   # Wan2.1推荐：832（16:9比例）
+        num_inference_steps: int = 50,  # Wan2.1推荐：50步
+        guidance_scale: float = 5.0,    # Wan2.1推荐：5.0
         seed: Optional[int] = None,
         # VideoSeal参数
         lowres_attenuation: bool = True,
@@ -213,7 +213,7 @@ class VideoWatermark:
                 # 创建安全的文件名
                 safe_prompt = "".join(c for c in prompt[:30] if c.isalnum() or c in (' ', '-', '_')).rstrip()
                 safe_message = "".join(c for c in message[:20] if c.isalnum() or c in ('-', '_')).rstrip()
-                filename = f"hunyuan_{safe_prompt}_{safe_message}.mp4".replace(' ', '_')
+                filename = f"wan_{safe_prompt}_{safe_message}.mp4".replace(' ', '_')
                 output_path = os.path.join("tests/test_results", filename)
             
             # 确保输出目录存在
@@ -489,7 +489,7 @@ class VideoWatermark:
         
         # 模型信息
         if self.model_manager:
-            info["hunyuan_model"] = self.model_manager.get_model_info()
+            info["wan_model"] = self.model_manager.get_wan_model_info()
         
         if self.video_generator:
             info["video_generator"] = self.video_generator.get_pipeline_info()
