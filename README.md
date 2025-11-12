@@ -57,7 +57,7 @@
 1. 克隆仓库
 
    ```bash
-   git clone https://github.com/your-repo-link/AIGC-Identification-Toolkit.git
+   git clone https://github.com/MillionMillionLi/AIGC-Identification-Toolkit.git
    cd AIGC-Identification-Toolkit
    ```
 
