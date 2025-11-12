@@ -234,7 +234,6 @@ class ModelManager:
                 # 项目内 models 目录
                 candidates.append(Path(__file__).resolve().parents[3] / 'models')
                 # 用户默认缓存
-                candidates.append(Path('/fs-computility/wangxuhong/limeilin/.cache/huggingface/hub'))
                 candidates.append(Path.home() / '.cache' / 'huggingface' / 'hub')
                 # 去重并保序
                 ordered = []

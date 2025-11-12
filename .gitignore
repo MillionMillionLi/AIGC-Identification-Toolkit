@@ -64,11 +64,24 @@ temp/
 tmp/
 *.tmp
 
-# Environment
+# Environment variables and local configuration
 .env
+.env.local
+.env.*.local
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/ 
+
+
+# 本地环境配置（防止泄露硬编码路径）
+.claude/settings.local.json
+
+# 本地缓存和输出（防止提交大文件）
+.cache/
+models/
+outputs/
+tests/test_results/
+demo_uploads/

@@ -10,7 +10,7 @@ PostMark AI文本生成+水印测试脚本
 3. 检测水印并验证
 
 运行方法:
-    cd /fs-computility/wangxuhong/limeilin/AI-Generated-Content-Identification-Toolkit
+    # 从项目根目录运行
     python tests/test_postmark_generation.py
 
 或者:

@@ -223,9 +223,7 @@ print(engine.get_default_algorithms())
 验证双算法系统是否正常工作：
 
 ```bash
-cd /fs-computility/wangxuhong/limeilin/AI-Generated-Content-Identification-Toolkit
-
-# 运行完整测试套件
+# 从项目根目录运行完整测试套件
 python tests/test_text_watermark_dual_algorithm.py
 ```
 

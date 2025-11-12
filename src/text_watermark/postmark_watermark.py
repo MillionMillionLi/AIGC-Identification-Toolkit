@@ -11,22 +11,24 @@ from pathlib import Path
 
 # 添加PostMark目录到路径
 POSTMARK_DIR = Path(__file__).parent / "PostMark"
-sys.path.insert(0, str(POSTMARK_DIR))
+if str(POSTMARK_DIR) not in sys.path:
+    sys.path.insert(0, str(POSTMARK_DIR))
+
+# PostMark相关依赖可能并非所有环境都安装，延迟记录导入错误，
+# 避免在未使用PostMark功能时直接阻断整个包的加载。
+POSTMARK_IMPORT_ERROR: Optional[BaseException] = None
+Watermarker = NomicEmbed = LLM = compute_presence = None  # type: ignore
 
 try:
-    from PostMark.postmark.models import Watermarker, NomicEmbed, LLM
-    from PostMark.postmark.utils import compute_presence
-except ImportError:
-    # 备用导入路径
+    from PostMark.postmark.models import Watermarker, NomicEmbed, LLM  # type: ignore
+    from PostMark.postmark.utils import compute_presence  # type: ignore
+except ImportError as upper_exc:
     try:
-        # 切换到PostMark目录以确保相对导入正常工作
-        original_dir = os.getcwd()
-        os.chdir(POSTMARK_DIR)
-        from postmark.models import Watermarker, NomicEmbed, LLM
-        from postmark.utils import compute_presence
-        os.chdir(original_dir)
-    except Exception as e:
-        raise ImportError(f"无法导入PostMark模块: {e}. 请确保PostMark目录结构完整。")
+        from postmark.models import Watermarker, NomicEmbed, LLM  # type: ignore
+        from postmark.utils import compute_presence  # type: ignore
+    except Exception as lower_exc:  # 捕获底层依赖缺失等异常
+        POSTMARK_IMPORT_ERROR = lower_exc
+        Watermarker = NomicEmbed = LLM = compute_presence = None  # type: ignore
 
 
 class PostMarkWatermark:
@@ -74,6 +76,11 @@ class PostMarkWatermark:
                 - device: 设备设置，默认auto
                 - llm_for_generation: 用于生成原始文本的LLM（可选）
         """
+        if POSTMARK_IMPORT_ERROR is not None or Watermarker is None:
+            raise ImportError(
+                "PostMark依赖未正确安装。请先执行 `pip install together` 并确认PostMark子模块完整。"
+            ) from POSTMARK_IMPORT_ERROR
+
         self.config = config
         self.logger = logging.getLogger(__name__)
 

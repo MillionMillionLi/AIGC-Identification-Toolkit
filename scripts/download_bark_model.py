@@ -7,10 +7,13 @@ Bark模型下载和修复脚本
 import os
 import sys
 import warnings
+from pathlib import Path
 
-# 设置环境变量
-os.environ['HF_HOME'] = '/fs-computility/wangxuhong/limeilin/.cache/huggingface'
-os.environ['XDG_CACHE_HOME'] = '/fs-computility/wangxuhong/limeilin/.cache'
+# 设置环境变量（使用跨平台路径）
+if 'HF_HOME' not in os.environ:
+    os.environ['HF_HOME'] = str(Path.home() / '.cache' / 'huggingface')
+if 'XDG_CACHE_HOME' not in os.environ:
+    os.environ['XDG_CACHE_HOME'] = str(Path.home() / '.cache')
 
 # 临时修复torch.load的weights_only问题
 import torch

@@ -4,7 +4,7 @@
 # === 系统设置 ===
 system:
   device: "auto"               # 可选："cuda" | "cpu" | "auto"
-  cache_dir: "/fs-computility/wangxuhong/limeilin/.cache/huggingface/hub"  # HuggingFace模型缓存目录
+  cache_dir: null              # 默认使用 $HF_HOME/hub 或 ~/.cache/huggingface/hub
   output_dir: "tests/test_results"    # 结果输出目录
   log_level: "INFO"            # 日志级别
 

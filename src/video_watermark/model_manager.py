@@ -17,18 +17,24 @@ except ImportError:
     HF_HUB_AVAILABLE = False
     logging.warning("huggingface_hub not available. Model downloading will be disabled.")
 
+from src.utils.path_manager import path_manager
+
 
 class ModelManager:
     """视频生成模型管理器（支持HunyuanVideo和Wan2.1）"""
 
-    def __init__(self, cache_dir: str = "/fs-computility/wangxuhong/limeilin/.cache/huggingface/hub"):
+    def __init__(self, cache_dir: Optional[str] = None):
         """
         初始化模型管理器
 
         Args:
-            cache_dir: HuggingFace模型缓存目录
+            cache_dir: HuggingFace模型缓存目录（None则使用环境变量或默认路径）
         """
-        self.cache_dir = Path(cache_dir)
+        # Use path_manager to resolve cache directory
+        if cache_dir:
+            self.cache_dir = Path(cache_dir)
+        else:
+            self.cache_dir = path_manager.get_hf_hub_dir()
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         # HunyuanVideo模型配置（支持多个仓库源）

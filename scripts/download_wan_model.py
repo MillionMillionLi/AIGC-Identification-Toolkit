@@ -3,15 +3,20 @@
 """
 import os
 import torch
+from pathlib import Path
 
 print("=" * 60)
 print("开始下载Wan2.1-T2V-1.3B视频生成模型")
 print("=" * 60)
 
+# 确定缓存目录
+cache_dir = os.environ.get('HF_HOME', str(Path.home() / '.cache' / 'huggingface'))
+cache_hub_dir = os.path.join(cache_dir, 'hub')
+
 # 确认环境变量
 print(f"\nHF_HOME: {os.environ.get('HF_HOME', 'Not set')}")
 print(f"HF_ENDPOINT: {os.environ.get('HF_ENDPOINT', 'Not set')}")
-print(f"缓存目录: /fs-computility/wangxuhong/limeilin/.cache/huggingface/hub")
+print(f"缓存目录: {cache_hub_dir}")
 
 print("\n模型信息:")
 print("  名称: Wan-AI/Wan2.1-T2V-1.3B-Diffusers")
@@ -38,19 +43,18 @@ try:
     print("=" * 60)
 
     # 检查下载位置
-    cache_dir = "/fs-computility/wangxuhong/limeilin/.cache/huggingface/hub"
-    if os.path.exists(cache_dir):
-        print(f"\n✅ 缓存目录已创建: {cache_dir}")
+    if os.path.exists(cache_hub_dir):
+        print(f"\n✅ 缓存目录已创建: {cache_hub_dir}")
         # 列出下载的模型
         import subprocess
         result = subprocess.run(
-            ["find", cache_dir, "-name", "*Wan*", "-type", "d", "-maxdepth", "2"],
+            ["find", cache_hub_dir, "-name", "*Wan*", "-type", "d", "-maxdepth", "2"],
             capture_output=True, text=True
         )
         if result.stdout:
             print(f"✅ 找到模型目录:\n{result.stdout}")
     else:
-        print(f"⚠️  缓存目录未找到: {cache_dir}")
+        print(f"⚠️  缓存目录未找到: {cache_hub_dir}")
 
     print("\n✅ 模型已准备就绪，可以开始使用！")
     print("\n下一步:")

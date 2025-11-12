@@ -13,26 +13,31 @@ from .model_manager import ModelManager
 from .wan_video_generator import WanVideoGenerator
 from .videoseal_wrapper import VideoSealWrapper
 from .utils import VideoIOUtils, PerformanceTimer, FileUtils, MemoryMonitor, VideoTranscoder
+from src.utils.path_manager import path_manager
 
 
 class VideoWatermark:
     """统一视频水印接口类"""
-    
+
     def __init__(
-        self, 
-        cache_dir: str = "/fs-computility/wangxuhong/limeilin/.cache/huggingface/hub",
+        self,
+        cache_dir: Optional[str] = None,
         device: Optional[str] = None,
         config: Optional[Dict] = None
     ):
         """
         初始化视频水印工具
-        
+
         Args:
-            cache_dir: HuggingFace模型缓存目录
+            cache_dir: HuggingFace模型缓存目录（None则使用环境变量或默认路径）
             device: 计算设备 ('cuda', 'cpu', 或None自动选择)
             config: 配置字典，可包含VideoSeal等参数
         """
-        self.cache_dir = cache_dir
+        # Resolve cache directory using path_manager
+        if cache_dir:
+            self.cache_dir = cache_dir
+        else:
+            self.cache_dir = str(path_manager.get_hf_hub_dir())
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         
         # 保存配置
@@ -522,15 +527,14 @@ def create_video_watermark(
 ) -> VideoWatermark:
     """
     创建视频水印工具的快捷函数
-    
+
     Args:
-        cache_dir: 模型缓存目录
+        cache_dir: 模型缓存目录（None则使用环境变量或默认路径）
         device: 计算设备
-        
+
     Returns:
         VideoWatermark: 视频水印工具实例
     """
-    cache_dir = cache_dir or "/fs-computility/wangxuhong/limeilin/.cache/huggingface/hub"
     return VideoWatermark(cache_dir=cache_dir, device=device)
 
 

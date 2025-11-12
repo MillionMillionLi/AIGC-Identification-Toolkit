@@ -12,13 +12,13 @@ __version__ = "1.0.0"
 __all__ = ["VideoWatermark", "ModelManager", "HunyuanVideoGenerator", "VideoSealWrapper"]
 
 # 为方便使用，提供快速加载接口
-def load_video_watermark(cache_dir="/fs-computility/wangxuhong/limeilin/.cache/huggingface/hub"):
+def load_video_watermark(cache_dir=None):
     """
     快速加载视频水印工具
-    
+
     Args:
-        cache_dir: HuggingFace模型缓存目录
-        
+        cache_dir: HuggingFace模型缓存目录（None则使用环境变量或默认路径）
+
     Returns:
         VideoWatermark: 视频水印工具实例
     """

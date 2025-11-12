@@ -8,6 +8,7 @@ import torch
 import numpy as np
 from PIL import Image
 from typing import Dict, Any, Optional, Union, Tuple
+from src.utils.path_manager import path_manager
 
 # 导入PRC核心算法
 import sys
@@ -125,9 +126,9 @@ class PRCWatermark:
         """初始化Stable Diffusion管道"""
         if not PRC_AVAILABLE:
             raise RuntimeError("PRC dependencies not available, cannot setup diffusion pipeline")
-            
+
         # 设置正确的缓存目录
-        cache_dir = self.cache_dir or '/fs-computility/wangxuhong/limeilin/.cache/huggingface/hub'
+        cache_dir = self.cache_dir or str(path_manager.get_hf_hub_dir())
         
         # 设置离线模式，避免网络连接
         import os

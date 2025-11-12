@@ -505,6 +505,31 @@ class AudioWatermark:
             "mse": mse,
             "correlation": correlation
         }
+
+    def save_audio(self,
+                   audio: Union[str, torch.Tensor],
+                   output_path: Union[str, Path],
+                   sample_rate: Optional[int] = None) -> str:
+        """保存音频到指定路径，支持Tensor或已有文件路径输入"""
+        output_path = Path(output_path)
+        FileUtils.ensure_dir(output_path.parent)
+
+        if isinstance(audio, torch.Tensor):
+            sr = sample_rate or self.config.get('sample_rate', 16000)
+            AudioIOUtils.save_audio(audio, output_path, sample_rate=sr)
+            return str(output_path)
+
+        # 若传入的是现有文件路径则直接复制
+        source_path = Path(audio)
+        if not source_path.exists():
+            raise FileNotFoundError(f"音频文件不存在: {source_path}")
+
+        if source_path.resolve() == output_path.resolve():
+            return str(output_path)
+
+        import shutil
+        shutil.copy2(source_path, output_path)
+        return str(output_path)
     
     def get_model_info(self) -> Dict[str, Any]:
         """获取模型信息"""

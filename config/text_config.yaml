@@ -100,7 +100,7 @@ postmark:
   generation_top_k: 50                     # Top-k sampling参数（可选）
 
   # === PostMark模型缓存配置 ===
-  cache_dir: "/fs-computility/wangxuhong/limeilin/.cache/huggingface"
+  cache_dir: null  # 默认使用 $HF_HOME 或 ~/.cache/huggingface
 
 # ===================================
 # 算法切换说明

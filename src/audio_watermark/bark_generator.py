@@ -10,6 +10,7 @@ import os
 import warnings
 from typing import Optional, Dict, Any, Union
 from pathlib import Path
+from src.utils.path_manager import path_manager
 
 # ===== PyTorch 2.6兼容性补丁 =====
 # 修复Bark模型加载的torch.load兼容性问题
@@ -125,20 +126,14 @@ class BarkGenerator:
         original_cache_home = os.environ.get('XDG_CACHE_HOME')
         original_home = os.environ.get('HOME')
 
-        # 项目缓存根目录（默认到用户项目路径）
-        cache_base = os.environ.get(
-            'XDG_CACHE_HOME',
-            '/fs-computility/wangxuhong/limeilin/.cache'
-        )
+        # 项目缓存根目录（使用跨平台路径管理）
+        cache_base = os.environ.get('XDG_CACHE_HOME') or str(path_manager.get_cache_root())
 
         # 允许通过环境变量直接指定 Bark 模型目录（可指向 bark_v0 或 HF hub 的 models--suno--bark）
         env_bark_dir = os.environ.get('BARK_CACHE_DIR')
 
-        # HF 缓存根目录
-        hf_home = os.environ.get(
-            'HF_HOME',
-            '/fs-computility/wangxuhong/limeilin/.cache/huggingface'
-        )
+        # HF 缓存根目录（使用跨平台路径管理）
+        hf_home = os.environ.get('HF_HOME') or str(path_manager.get_hf_home())
 
         # 备选的本地 Bark 模型目录（按优先级）
         candidate_targets = []

@@ -73,7 +73,6 @@ class UnifiedWatermarkEngine:
         # 项目内 models 目录
         candidates.append(os.path.join(self._project_root(), 'models'))
         # 用户级默认缓存
-        candidates.append('/fs-computility/wangxuhong/limeilin/.cache/huggingface/hub')
         candidates.append(os.path.expanduser('~/.cache/huggingface/hub'))
         # 去重并保留顺序
         seen = set()

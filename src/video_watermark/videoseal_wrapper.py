@@ -152,8 +152,10 @@ class VideoSealWrapper:
         # 转换为字符串
         try:
             message = bytes(bytes_list).decode('utf-8', errors='ignore')
-            # 移除尾部的空字符和padding
-            message = message.rstrip('\x00').rstrip()
+            if message:
+                # 移除尾部的控制字符和填充内容（常见的\x00、\x01等）
+                control_chars = ''.join(chr(i) for i in range(0, 32))
+                message = message.rstrip(control_chars)
             return message
         except Exception as e:
             self.logger.warning(f"字符串解码失败: {e}")
